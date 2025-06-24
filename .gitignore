@@ -1,0 +1,40 @@
+# .NET / C# / EFCore
+bin/
+obj/
+*.user
+*.suo
+*.vsp
+*.psess
+*.vspx
+*.cache
+*.log
+*.pdb
+*.dbmdl
+Litigator.http
+Properties/
+
+# Secrets
+secrets.json
+
+# EF Migrations
+Migrations/
+
+# Visual Studio
+.vscode/
+.vs/
+*.csproj.user
+
+# User secrets
+**/appsettings.Development.json
+**/appsettings.Local.json
+appsettings.json
+
+# Angular (if added later)
+node_modules/
+dist/
+.angular/
+.env
+
+# Logs
+logs/
+*.log
