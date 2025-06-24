@@ -1,11 +1,9 @@
+using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Litigator.DataAccess.Entities;
 using Litigator.Models.DTOs.Case;
 using Litigator.Services.Interfaces;
-using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Litigator.Models.DTOs.Case;
 
 namespace Litigator.Controllers
 {

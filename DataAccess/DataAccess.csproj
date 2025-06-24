@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="DataAccess.csproj" />
+	<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </ItemGroup>
 
   <PropertyGroup>

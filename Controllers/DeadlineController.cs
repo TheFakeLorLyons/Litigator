@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using Litigator.Services.Interfaces;
-using Litigator.DataAccess.Entities;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Litigator.DataAccess.Entities;
+using Litigator.Models.DTOs.Deadline;
+using Litigator.Services.Interfaces;
 
 namespace Litigator.Controllers
 {
@@ -19,15 +20,25 @@ namespace Litigator.Controllers
             _logger = logger;
         }
 
+        [HttpGet("{id}")]
+        public async Task<ActionResult<DeadlineDTO>> GetDeadline(int id)
+        {
+            var deadline = await _deadlineService.GetDeadlineByIdAsync(id);
+            if (deadline == null)
+                return NotFound();
+
+            return Ok(deadline);
+        }
+
         [HttpGet("upcoming")]
-        public async Task<ActionResult<IEnumerable<Deadline>>> GetUpcomingDeadlines([FromQuery] int days = 30)
+        public async Task<ActionResult<IEnumerable<DeadlineDTO>>> GetUpcomingDeadlines([FromQuery] int days = 30)
         {
             var deadlines = await _deadlineService.GetUpcomingDeadlinesAsync(days);
             return Ok(deadlines);
         }
 
         [HttpGet("overdue")]
-        public async Task<ActionResult<IEnumerable<Deadline>>> GetOverdueDeadlines()
+        public async Task<ActionResult<IEnumerable<DeadlineDTO>>> GetOverdueDeadlines()
         {
             var deadlines = await _deadlineService.GetOverdueDeadlinesAsync();
             return Ok(deadlines);
@@ -40,48 +51,34 @@ namespace Litigator.Controllers
             return Ok(deadlines);
         }
 
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<DeadlineDTO>>> GetAllDeadlines()
+        {
+            var deadlines = await _deadlineService.GetAllDeadlinesAsync();
+            return Ok(deadlines);
+        }
+
         [HttpGet("case/{caseId}")]
-        public async Task<ActionResult<IEnumerable<Deadline>>> GetDeadlinesByCase(int caseId)
+        public async Task<ActionResult<IEnumerable<DeadlineDTO>>> GetDeadlinesByCase(int caseId)
         {
             var deadlines = await _deadlineService.GetDeadlinesByCaseAsync(caseId);
             return Ok(deadlines);
         }
 
         [HttpPost]
-        public async Task<ActionResult<Deadline>> CreateDeadline([FromBody] Deadline deadline)
+        public async Task<ActionResult<DeadlineDTO>> CreateDeadline(DeadlineCreateDTO createDto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            try
-            {
-                var createdDeadline = await _deadlineService.CreateDeadlineAsync(deadline);
-                return CreatedAtAction(nameof(GetDeadlinesByCase), new { caseId = createdDeadline.CaseId }, createdDeadline);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Error creating deadline: {ex.Message}");
-            }
+            var deadline = await _deadlineService.CreateDeadlineAsync(createDto);
+            return CreatedAtAction(nameof(GetDeadline), new { id = deadline.DeadlineId }, deadline);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<Deadline>> UpdateDeadline(int id, [FromBody] Deadline deadline)
+        public async Task<ActionResult<DeadlineDTO>> UpdateDeadline(int id, DeadlineUpdateDTO updateDto)
         {
-            if (id != deadline.DeadlineId)
-                return BadRequest("Deadline ID mismatch.");
-
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            try
-            {
-                var updatedDeadline = await _deadlineService.UpdateDeadlineAsync(deadline);
-                return Ok(updatedDeadline);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Error updating deadline: {ex.Message}");
-            }
+            var deadline = await _deadlineService.UpdateDeadlineAsync(id, updateDto);
+            if (deadline == null)
+                return NotFound();
+            return Ok(deadline);
         }
 
         [HttpPut("{id}/complete")]

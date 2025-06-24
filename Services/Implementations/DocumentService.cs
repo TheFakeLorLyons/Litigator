@@ -1,100 +1,132 @@
-using Litigator.Services.Interfaces;
-using Litigator.DataAccess.Data;
-using Litigator.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System;
+using AutoMapper;
+using Litigator.DataAccess.Data;
+using Litigator.DataAccess.Entities;
+using Litigator.Models.DTOs.Document;
+using Litigator.Services.Interfaces;
 
 namespace Litigator.Services.Implementations
 {
     public class DocumentService : IDocumentService
     {
         private readonly LitigatorDbContext _context;
+        private readonly IMapper _mapper;
 
-        public DocumentService(LitigatorDbContext context)
+        public DocumentService(LitigatorDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
-        public async Task<IEnumerable<Document>> GetDocumentsByCaseAsync(int caseId)
+        public async Task<IEnumerable<DocumentDTO>> GetAllDocumentsAsync()
         {
             return await _context.Documents
                 .Include(d => d.Case)
-                .Where(d => d.CaseId == caseId)
+                .Select(d => new DocumentDTO
+                {
+                    DocumentId = d.DocumentId,
+                    DocumentName = d.DocumentName,
+                    DocumentType = d.DocumentType,
+                    FilePath = d.FilePath,
+                    UploadDate = d.UploadDate,
+                    FileSize = d.FileSize,
+                    UploadedBy = d.UploadedBy,
+                    CaseId = d.CaseId,
+                    CaseNumber = d.Case != null ? d.Case.CaseNumber : null,
+                    CaseTitle = d.Case != null ? d.Case.CaseTitle : null
+                })
                 .OrderByDescending(d => d.UploadDate)
                 .ToListAsync();
         }
 
-        public async Task<Document?> GetDocumentByIdAsync(int id)
+        public async Task<IEnumerable<DocumentDTO>> GetDocumentsByCaseAsync(int caseId)
         {
             return await _context.Documents
                 .Include(d => d.Case)
-                    .ThenInclude(c => c.Client)
-                .FirstOrDefaultAsync(d => d.DocumentId == id);
+                .Where(d => d.CaseId == caseId)
+                .Select(d => new DocumentDTO
+                {
+                    DocumentId = d.DocumentId,
+                    DocumentName = d.DocumentName,
+                    DocumentType = d.DocumentType,
+                    FilePath = d.FilePath,
+                    UploadDate = d.UploadDate,
+                    FileSize = d.FileSize,
+                    UploadedBy = d.UploadedBy,
+                    CaseId = d.CaseId,
+                    CaseNumber = d.Case != null ? d.Case.CaseNumber : null,
+                    CaseTitle = d.Case != null ? d.Case.CaseTitle : null
+                })
+                .OrderByDescending(d => d.UploadDate)
+                .ToListAsync();
         }
 
-        public async Task<Document> CreateDocumentAsync(Document document)
+        public async Task<DocumentDTO?> GetDocumentByIdAsync(int id)
+        {
+            var document = await _context.Documents
+                .Include(d => d.Case)
+                    .ThenInclude(c => c.Client)
+                .FirstOrDefaultAsync(d => d.DocumentId == id);
+
+            return document == null ? null : _mapper.Map<DocumentDTO>(document);
+        }
+
+
+        public async Task<DocumentDTO> CreateDocumentAsync(DocumentCreateDTO createDto)
         {
             // Validate case exists
-            var caseExists = await _context.Cases.AnyAsync(c => c.CaseId == document.CaseId);
+            var caseExists = await _context.Cases.AnyAsync(c => c.CaseId == createDto.CaseId);
             if (!caseExists)
             {
-                throw new InvalidOperationException($"Case with ID {document.CaseId} not found.");
+                throw new InvalidOperationException($"Case with ID {createDto.CaseId} not found.");
             }
 
             // Validate file path doesn't already exist
-            if (!string.IsNullOrWhiteSpace(document.FilePath))
+            if (!string.IsNullOrWhiteSpace(createDto.FilePath))
             {
                 var existingDocument = await _context.Documents
-                    .FirstOrDefaultAsync(d => d.FilePath == document.FilePath);
+                    .FirstOrDefaultAsync(d => d.FilePath == createDto.FilePath);
                 if (existingDocument != null)
                 {
-                    throw new InvalidOperationException($"Document with file path {document.FilePath} already exists.");
+                    throw new InvalidOperationException($"Document with file path {createDto.FilePath} already exists.");
                 }
             }
 
+            var document = _mapper.Map<Document>(createDto);
             document.UploadDate = DateTime.Now;
+
             _context.Documents.Add(document);
             await _context.SaveChangesAsync();
 
-            return await GetDocumentByIdAsync(document.DocumentId) ?? document;
+            var createdDocument = await _context.Documents
+                .Include(d => d.Case)
+                    .ThenInclude(c => c.Client)
+                .FirstOrDefaultAsync(d => d.DocumentId == document.DocumentId);
+
+            return _mapper.Map<DocumentDTO>(createdDocument);
         }
 
-        public async Task<Document> UpdateDocumentAsync(Document document)
+        public async Task<DocumentDTO?> UpdateDocumentAsync(int id, DocumentUpdateDTO updateDto)
         {
-            var existingDocument = await _context.Documents.FindAsync(document.DocumentId);
+            var existingDocument = await _context.Documents.FindAsync(id);
             if (existingDocument == null)
             {
-                throw new InvalidOperationException($"Document with ID {document.DocumentId} not found.");
+                return null;
             }
 
-            // Validate case exists if being changed
-            if (existingDocument.CaseId != document.CaseId)
-            {
-                var caseExists = await _context.Cases.AnyAsync(c => c.CaseId == document.CaseId);
-                if (!caseExists)
-                {
-                    throw new InvalidOperationException($"Case with ID {document.CaseId} not found.");
-                }
-            }
+            // Map the update DTO to the existing entity (preserving fields not in the DTO)
+            _mapper.Map(updateDto, existingDocument);
 
-            // Check file path uniqueness if being changed
-            if (!string.IsNullOrWhiteSpace(document.FilePath) &&
-                existingDocument.FilePath != document.FilePath)
-            {
-                var duplicateDocument = await _context.Documents
-                    .FirstOrDefaultAsync(d => d.FilePath == document.FilePath);
-                if (duplicateDocument != null)
-                {
-                    throw new InvalidOperationException($"Document with file path {document.FilePath} already exists.");
-                }
-            }
-
-            _context.Entry(existingDocument).CurrentValues.SetValues(document);
             await _context.SaveChangesAsync();
 
-            return await GetDocumentByIdAsync(document.DocumentId) ?? document;
+            var updatedDocument = await _context.Documents
+                .Include(d => d.Case)
+                    .ThenInclude(c => c.Client)
+                .FirstOrDefaultAsync(d => d.DocumentId == id);
+
+            return _mapper.Map<DocumentDTO>(updatedDocument);
         }
 
         public async Task<bool> DeleteDocumentAsync(int id)
@@ -105,18 +137,18 @@ namespace Litigator.Services.Implementations
                 return false;
             }
 
-            // Note: In a real application, you'd also want to delete the physical file
-            // from the file system here
+            // In a real application, I'd have to delete the actual file
+            // from the file system if one existed, but this deletes it from memory.
 
             _context.Documents.Remove(document);
             await _context.SaveChangesAsync();
             return true;
         }
 
-        public async Task<IEnumerable<Document>> SearchDocumentsAsync(string searchTerm)
+        public async Task<IEnumerable<DocumentDTO>> SearchDocumentsAsync(string searchTerm)
         {
             var term = searchTerm.ToLower();
-            return await _context.Documents
+            var documents = await _context.Documents
                 .Include(d => d.Case)
                     .ThenInclude(c => c.Client)
                 .Where(d =>
@@ -127,14 +159,28 @@ namespace Litigator.Services.Implementations
                     d.Case.CaseTitle.ToLower().Contains(term))
                 .OrderByDescending(d => d.UploadDate)
                 .ToListAsync();
+
+            return _mapper.Map<IEnumerable<DocumentDTO>>(documents);
         }
 
-        public async Task<IEnumerable<Document>> GetDocumentsByTypeAsync(string documentType)
+        public async Task<IEnumerable<DocumentDTO>> GetDocumentsByTypeAsync(string documentType)
         {
             return await _context.Documents
                 .Include(d => d.Case)
-                    .ThenInclude(c => c.Client)
                 .Where(d => d.DocumentType.ToLower() == documentType.ToLower())
+                .Select(d => new DocumentDTO
+                {
+                    DocumentId = d.DocumentId,
+                    DocumentName = d.DocumentName,
+                    DocumentType = d.DocumentType,
+                    FilePath = d.FilePath,
+                    UploadDate = d.UploadDate,
+                    FileSize = d.FileSize,
+                    UploadedBy = d.UploadedBy,
+                    CaseId = d.CaseId,
+                    CaseNumber = d.Case != null ? d.Case.CaseNumber : null,
+                    CaseTitle = d.Case != null ? d.Case.CaseTitle : null
+                })
                 .OrderByDescending(d => d.UploadDate)
                 .ToListAsync();
         }

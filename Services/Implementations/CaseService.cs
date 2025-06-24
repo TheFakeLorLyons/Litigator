@@ -34,7 +34,8 @@ namespace Litigator.Services.Implementations
                     Status = c.Status,
                     EstimatedValue = c.EstimatedValue,
                     ClientName = c.Client.ClientName,
-                    AttorneyName = c.AssignedAttorney != null ? $"{c.AssignedAttorney.FirstName} {c.AssignedAttorney.LastName}" : null,
+                    AttorneyFirstName = c.AssignedAttorney != null ? $"{c.AssignedAttorney.FirstName}" : null,
+                    AttorneyLastName = c.AssignedAttorney != null ? $"{c.AssignedAttorney.LastName}" : null,
                     CourtName = c.Court != null ? c.Court.CourtName : null,
                     OpenDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
                 })

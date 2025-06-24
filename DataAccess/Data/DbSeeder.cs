@@ -8,7 +8,7 @@ namespace Litigator.DataAccess.Data
 {
     public static class DbSeeder
     {
-        public static void SeedData(LitigatorDbContext context, bool includeTestData = false)
+        public static void SeedData(LitigatorDbContext context, bool includeTestData = true)
         {
             // Ensure database is created
             context.Database.EnsureCreated();

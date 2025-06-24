@@ -2,12 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-using Litigator.Controllers;
-using Litigator.Services.Interfaces;
-using Litigator.DataAccess.Entities;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
+using Litigator.Controllers;
+using Litigator.Services.Interfaces;
+using Litigator.DataAccess.Entities;
 
 namespace Litigator.Tests.Controllers
 {

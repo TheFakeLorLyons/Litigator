@@ -1,10 +1,9 @@
-using Litigator.Services.Interfaces;
-using Litigator.DataAccess.Data;
-using Litigator.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System;
+using Litigator.Services.Interfaces;
+using Litigator.DataAccess.Data;
+using Litigator.DataAccess.Entities;
 
 namespace Litigator.Services.Implementations
 {

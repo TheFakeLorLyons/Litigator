@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using Litigator.Services.Interfaces;
-using Litigator.DataAccess.Entities;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Litigator.DataAccess.Entities;
+using Litigator.Models.DTOs.Document;
+using Litigator.Services.Interfaces;
 
 namespace Litigator.Controllers
 {
@@ -17,27 +18,26 @@ namespace Litigator.Controllers
             _documentService = documentService;
         }
 
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<DocumentDTO>>> GetAllDocuments()
+        {
+            var documents = await _documentService.GetAllDocumentsAsync();
+            return Ok(documents);
+        }
+
         [HttpGet("{id}")]
-        public async Task<ActionResult<Document>> GetDocument(int id)
+        public async Task<ActionResult<DocumentDTO>> GetDocument(int id)
         {
             var document = await _documentService.GetDocumentByIdAsync(id);
             if (document == null)
-                return NotFound($"Document with ID {id} not found.");
-
+                return NotFound();
             return Ok(document);
         }
 
         [HttpGet("case/{caseId}")]
-        public async Task<ActionResult<IEnumerable<Document>>> GetDocumentsByCase(int caseId)
+        public async Task<ActionResult<IEnumerable<DocumentDTO>>> GetDocumentsByCase(int caseId)
         {
             var documents = await _documentService.GetDocumentsByCaseAsync(caseId);
-            return Ok(documents);
-        }
-
-        [HttpGet("type/{documentType}")]
-        public async Task<ActionResult<IEnumerable<Document>>> GetDocumentsByType(string documentType)
-        {
-            var documents = await _documentService.GetDocumentsByTypeAsync(documentType);
             return Ok(documents);
         }
 
@@ -52,40 +52,19 @@ namespace Litigator.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Document>> CreateDocument([FromBody] Document document)
+        public async Task<ActionResult<DocumentDTO>> CreateDocument(DocumentCreateDTO createDto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            try
-            {
-                var createdDocument = await _documentService.CreateDocumentAsync(document);
-                return CreatedAtAction(nameof(GetDocument), new { id = createdDocument.DocumentId }, createdDocument);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Error creating document: {ex.Message}");
-            }
+            var document = await _documentService.CreateDocumentAsync(createDto);
+            return CreatedAtAction(nameof(GetDocument), new { id = document.DocumentId }, document);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<Document>> UpdateDocument(int id, [FromBody] Document document)
+        public async Task<ActionResult<DocumentDTO>> UpdateDocument(int id, DocumentUpdateDTO updateDto)
         {
-            if (id != document.DocumentId)
-                return BadRequest("Document ID mismatch.");
-
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            try
-            {
-                var updatedDocument = await _documentService.UpdateDocumentAsync(document);
-                return Ok(updatedDocument);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Error updating document: {ex.Message}");
-            }
+            var document = await _documentService.UpdateDocumentAsync(id, updateDto);
+            if (document == null)
+                return NotFound();
+            return Ok(document);
         }
 
         [HttpDelete("{id}")]
@@ -96,6 +75,13 @@ namespace Litigator.Controllers
                 return NotFound($"Document with ID {id} not found.");
 
             return NoContent();
+        }
+
+        [HttpGet("type/{documentType}")]
+        public async Task<ActionResult<IEnumerable<DocumentDTO>>> GetDocumentsByType(string documentType)
+        {
+            var documents = await _documentService.GetDocumentsByTypeAsync(documentType);
+            return Ok(documents);
         }
     }
 }

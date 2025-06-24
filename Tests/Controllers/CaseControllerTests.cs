@@ -46,7 +46,8 @@ namespace Litigator.Tests.Controllers
                     Status = "Active",
                     EstimatedValue = 50000.00m,
                     ClientName = "Deadline Test Client",
-                    AttorneyName = "John Smith",
+                    AttorneyFirstName = "John",
+                    AttorneyLastName = "Smith",
                     CourtName = "Test Court",
                     OpenDeadlines = 3
                 },
@@ -60,7 +61,8 @@ namespace Litigator.Tests.Controllers
                     Status = "Active",
                     EstimatedValue = 75000.00m,
                     ClientName = "Deadline Test Client 2",
-                    AttorneyName = "Jane Doe",
+                    AttorneyFirstName = "Jane",
+                    AttorneyLastName = "Doe",
                     CourtName = "Test Court 2",
                     OpenDeadlines = 1
                 }

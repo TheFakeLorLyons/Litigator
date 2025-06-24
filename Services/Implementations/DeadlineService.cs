@@ -1,107 +1,190 @@
-using Litigator.Services.Interfaces;
-using Litigator.DataAccess.Data;
-using Litigator.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System;
+using AutoMapper;
+using Litigator.DataAccess.Data;
+using Litigator.DataAccess.Entities;
+using Litigator.Models.DTOs.Deadline;
+using Litigator.Models.Mapping;
+using Litigator.Services.Interfaces;
 
 namespace Litigator.Services.Implementations
 {
     public class DeadlineService : IDeadlineService
     {
         private readonly LitigatorDbContext _context;
+        private readonly IMapper _mapper;
 
-        public DeadlineService(LitigatorDbContext context)
+        public DeadlineService(LitigatorDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
-        public async Task<IEnumerable<Deadline>> GetUpcomingDeadlinesAsync(int days = 30)
+        public async Task<IEnumerable<DeadlineDTO>> GetUpcomingDeadlinesAsync(int days = 30)
         {
             var cutoffDate = DateTime.Now.AddDays(days);
-
             return await _context.Deadlines
                 .Include(d => d.Case)
-                    .ThenInclude(c => c.Client)
-                .Include(d => d.Case)
-                    .ThenInclude(c => c.AssignedAttorney)
                 .Where(d => !d.IsCompleted &&
                            d.DeadlineDate >= DateTime.Now &&
                            d.DeadlineDate <= cutoffDate)
+                .Select(d => new DeadlineDTO
+                {
+                    DeadlineId = d.DeadlineId,
+                    DeadlineType = d.DeadlineType,
+                    Description = d.Description,
+                    DeadlineDate = d.DeadlineDate,
+                    IsCompleted = d.IsCompleted,
+                    CompletedDate = d.CompletedDate,
+                    IsCritical = d.IsCritical,
+                    CaseId = d.CaseId,
+                    CaseNumber = d.Case != null ? d.Case.CaseNumber : null,
+                    CaseTitle = d.Case != null ? d.Case.CaseTitle : null
+                })
                 .OrderBy(d => d.DeadlineDate)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Deadline>> GetOverdueDeadlinesAsync()
+        public async Task<IEnumerable<DeadlineDTO>> GetOverdueDeadlinesAsync()
         {
             return await _context.Deadlines
                 .Include(d => d.Case)
-                    .ThenInclude(c => c.Client)
-                .Include(d => d.Case)
-                    .ThenInclude(c => c.AssignedAttorney)
                 .Where(d => !d.IsCompleted && d.DeadlineDate < DateTime.Now)
+                .Select(d => new DeadlineDTO
+                {
+                    DeadlineId = d.DeadlineId,
+                    DeadlineType = d.DeadlineType,
+                    Description = d.Description,
+                    DeadlineDate = d.DeadlineDate,
+                    IsCompleted = d.IsCompleted,
+                    CompletedDate = d.CompletedDate,
+                    IsCritical = d.IsCritical,
+                    CaseId = d.CaseId,
+                    CaseNumber = d.Case != null ? d.Case.CaseNumber : null,
+                    CaseTitle = d.Case != null ? d.Case.CaseTitle : null
+                })
                 .OrderBy(d => d.DeadlineDate)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Deadline>> GetDeadlinesByCaseAsync(int caseId)
+
+        public async Task<IEnumerable<DeadlineDTO>> GetDeadlinesByCaseAsync(int caseId)
         {
             return await _context.Deadlines
                 .Include(d => d.Case)
                 .Where(d => d.CaseId == caseId)
+                .Select(d => new DeadlineDTO
+                {
+                    DeadlineId = d.DeadlineId,
+                    DeadlineType = d.DeadlineType,
+                    Description = d.Description,
+                    DeadlineDate = d.DeadlineDate,
+                    IsCompleted = d.IsCompleted,
+                    CompletedDate = d.CompletedDate,
+                    IsCritical = d.IsCritical,
+                    CaseId = d.CaseId,
+                    CaseNumber = d.Case != null ? d.Case.CaseNumber : null,
+                    CaseTitle = d.Case != null ? d.Case.CaseTitle : null
+                })
                 .OrderBy(d => d.DeadlineDate)
                 .ToListAsync();
         }
 
-        public async Task<Deadline> CreateDeadlineAsync(Deadline deadline)
+        public async Task<IEnumerable<DeadlineDTO>> GetAllDeadlinesAsync()
+        {
+            return await _context.Deadlines
+                .Include(d => d.Case)
+                .Select(d => new DeadlineDTO
+                {
+                    DeadlineId = d.DeadlineId,
+                    DeadlineType = d.DeadlineType,
+                    Description = d.Description,
+                    DeadlineDate = d.DeadlineDate,
+                    IsCompleted = d.IsCompleted,
+                    CompletedDate = d.CompletedDate,
+                    IsCritical = d.IsCritical,
+                    CaseId = d.CaseId,
+                    CaseNumber = d.Case != null ? d.Case.CaseNumber : null,
+                    CaseTitle = d.Case != null ? d.Case.CaseTitle : null
+                })
+                .OrderBy(d => d.DeadlineDate)
+                .ToListAsync();
+        }
+
+        public async Task<DeadlineDTO?> GetDeadlineByIdAsync(int id)
+        {
+            return await _context.Deadlines
+                .Include(d => d.Case)
+                .Where(d => d.DeadlineId == id)
+                .Select(d => new DeadlineDTO
+                {
+                    DeadlineId = d.DeadlineId,
+                    DeadlineType = d.DeadlineType,
+                    Description = d.Description,
+                    DeadlineDate = d.DeadlineDate,
+                    IsCompleted = d.IsCompleted,
+                    CompletedDate = d.CompletedDate,
+                    IsCritical = d.IsCritical,
+                    CaseId = d.CaseId,
+                    CaseNumber = d.Case != null ? d.Case.CaseNumber : null,
+                    CaseTitle = d.Case != null ? d.Case.CaseTitle : null
+                })
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<DeadlineDTO> CreateDeadlineAsync(DeadlineCreateDTO createDto)
         {
             // Validate case exists
-            var caseExists = await _context.Cases.AnyAsync(c => c.CaseId == deadline.CaseId);
+            var caseExists = await _context.Cases.AnyAsync(c => c.CaseId == createDto.CaseId);
             if (!caseExists)
             {
-                throw new InvalidOperationException($"Case with ID {deadline.CaseId} not found.");
+                throw new InvalidOperationException($"Case with ID {createDto.CaseId} not found.");
             }
 
             // Validate deadline date is not in the past (unless explicitly allowed)
-            if (deadline.DeadlineDate < DateTime.Now.Date)
+            if (createDto.DeadlineDate < DateTime.Now.Date)
             {
                 throw new InvalidOperationException("Deadline date cannot be in the past.");
             }
 
+            var deadline = _mapper.Map<Deadline>(createDto);
             deadline.CreatedDate = DateTime.Now;
+
             _context.Deadlines.Add(deadline);
             await _context.SaveChangesAsync();
 
-            return await _context.Deadlines
+            var createdDeadline = await _context.Deadlines
                 .Include(d => d.Case)
-                .FirstOrDefaultAsync(d => d.DeadlineId == deadline.DeadlineId) ?? deadline;
+                    .ThenInclude(c => c.Client)
+                .Include(d => d.Case)
+                    .ThenInclude(c => c.AssignedAttorney)
+                .FirstOrDefaultAsync(d => d.DeadlineId == deadline.DeadlineId);
+
+            return _mapper.Map<DeadlineDTO>(createdDeadline);
         }
 
-        public async Task<Deadline> UpdateDeadlineAsync(Deadline deadline)
+        public async Task<DeadlineDTO?> UpdateDeadlineAsync(int id, DeadlineUpdateDTO updateDto)
         {
-            var existingDeadline = await _context.Deadlines.FindAsync(deadline.DeadlineId);
+            var existingDeadline = await _context.Deadlines.FindAsync(id);
             if (existingDeadline == null)
             {
-                throw new InvalidOperationException($"Deadline with ID {deadline.DeadlineId} not found.");
+                return null;
             }
 
-            // Validate case exists if being changed
-            if (existingDeadline.CaseId != deadline.CaseId)
-            {
-                var caseExists = await _context.Cases.AnyAsync(c => c.CaseId == deadline.CaseId);
-                if (!caseExists)
-                {
-                    throw new InvalidOperationException($"Case with ID {deadline.CaseId} not found.");
-                }
-            }
+            // Map the update DTO to the existing entity
+            _mapper.Map(updateDto, existingDeadline);
 
-            _context.Entry(existingDeadline).CurrentValues.SetValues(deadline);
             await _context.SaveChangesAsync();
 
-            return await _context.Deadlines
+            var updatedDeadline = await _context.Deadlines
                 .Include(d => d.Case)
-                .FirstOrDefaultAsync(d => d.DeadlineId == deadline.DeadlineId) ?? deadline;
+                    .ThenInclude(c => c.Client)
+                .Include(d => d.Case)
+                    .ThenInclude(c => c.AssignedAttorney)
+                .FirstOrDefaultAsync(d => d.DeadlineId == id);
+
+            return _mapper.Map<DeadlineDTO>(updatedDeadline);
         }
 
         public async Task<bool> DeleteDeadlineAsync(int id)
@@ -131,9 +214,9 @@ namespace Litigator.Services.Implementations
             return true;
         }
 
-        public async Task<IEnumerable<Deadline>> GetCriticalDeadlinesAsync()
+        public async Task<IEnumerable<DeadlineDTO>> GetCriticalDeadlinesAsync()
         {
-            return await _context.Deadlines
+            var deadlines = await _context.Deadlines
                 .Include(d => d.Case)
                     .ThenInclude(c => c.Client)
                 .Include(d => d.Case)
@@ -141,6 +224,8 @@ namespace Litigator.Services.Implementations
                 .Where(d => d.IsCritical && !d.IsCompleted)
                 .OrderBy(d => d.DeadlineDate)
                 .ToListAsync();
+
+            return _mapper.Map<IEnumerable<DeadlineDTO>>(deadlines);
         }
     }
 }

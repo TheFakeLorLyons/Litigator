@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.SqlServer;
 using System.Text.Json.Serialization;
-using Litigator.DataAccess.Data;
 using Litigator.Controllers;
+using Litigator.DataAccess.Data;
+using Litigator.Models.Mapping;
 using Litigator.Services.Interfaces;
 using Litigator.Services.Implementations;
 
@@ -32,6 +33,8 @@ namespace Litigator
                 options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
                 options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
             });
+
+            builder.Services.AddAutoMapper(typeof(LitigatorMappingProfile));
 
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();

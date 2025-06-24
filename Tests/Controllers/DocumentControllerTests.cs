@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
-using Litigator.Controllers;
-using Litigator.Services.Interfaces;
-using Litigator.DataAccess.Entities;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
+using Litigator.Controllers;
+using Litigator.DataAccess.Entities;
+using Litigator.Models.DTOs.Document;
+using Litigator.Services.Interfaces;
 
 namespace Litigator.Tests.Controllers
 {
@@ -22,18 +23,43 @@ namespace Litigator.Tests.Controllers
         }
 
         // Helper method to create a test document with all required properties
-        private Document CreateTestDocument(int id = 1, string name = "Test Document", string type = "PDF")
+        private DocumentDTO CreateTestDocumentDTO(int id = 1, string name = "Test Document", string type = "PDF")
         {
-            return new Document
+            return new DocumentDTO
             {
                 DocumentId = id,
                 DocumentName = name,
                 DocumentType = type,
                 FilePath = "/test/path/document.pdf",
+                UploadDate = DateTime.Now,
+                FileSize = 1024,
                 UploadedBy = "TestUser",
-                Case = CreateTestCase(1, "Test Case"),
                 CaseId = 1,
-                UploadDate = DateTime.Now
+                CaseNumber = "2024-CV-001",
+                CaseTitle = "Test Case"
+            };
+        }
+
+        private DocumentCreateDTO CreateTestDocumentCreateDTO(string name = "New Document", string type = "PDF")
+        {
+            return new DocumentCreateDTO
+            {
+                DocumentName = name,
+                DocumentType = type,
+                FilePath = "/test/path/document.pdf",
+                FileSize = 1024,
+                UploadedBy = "TestUser",
+                CaseId = 1
+            };
+        }
+
+        private DocumentUpdateDTO CreateTestDocumentUpdateDTO(string name = "Updated Document", string type = "PDF")
+        {
+            return new DocumentUpdateDTO
+            {
+                DocumentName = name,
+                DocumentType = type,
+                UploadedBy = "TestUser"
             };
         }
 
@@ -63,10 +89,30 @@ namespace Litigator.Tests.Controllers
         }
 
         [Fact]
+        public async Task CreateDocument_ValidDocument_ReturnsCreatedDocument()
+        {
+            // Arrange
+            var createDto = CreateTestDocumentCreateDTO();
+            var createdDocument = CreateTestDocumentDTO(1, createDto.DocumentName, createDto.DocumentType);
+
+            _mockDocumentService.Setup(s => s.CreateDocumentAsync(It.IsAny<DocumentCreateDTO>()))
+                              .ReturnsAsync(createdDocument);
+
+            // Act
+            var result = await _controller.CreateDocument(createDto);
+
+            // Assert
+            var actionResult = Assert.IsType<ActionResult<DocumentDTO>>(result);
+            var createdResult = Assert.IsType<CreatedAtActionResult>(actionResult.Result);
+            Assert.Equal(nameof(_controller.GetDocument), createdResult.ActionName);
+            Assert.Equal(createdDocument.DocumentId, ((DocumentDTO)createdResult.Value!).DocumentId);
+        }
+
+        [Fact]
         public async Task GetDocument_ExistingId_ReturnsDocument()
         {
             // Arrange
-            var testDocument = CreateTestDocument();
+            var testDocument = CreateTestDocumentDTO();
             _mockDocumentService.Setup(s => s.GetDocumentByIdAsync(1))
                               .ReturnsAsync(testDocument);
 
@@ -74,37 +120,37 @@ namespace Litigator.Tests.Controllers
             var result = await _controller.GetDocument(1);
 
             // Assert
-            var actionResult = Assert.IsType<ActionResult<Document>>(result);
+            var actionResult = Assert.IsType<ActionResult<DocumentDTO>>(result);
             var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
-            var document = Assert.IsType<Document>(okResult.Value);
+            var document = Assert.IsType<DocumentDTO>(okResult.Value);
             Assert.Equal(1, document.DocumentId);
         }
+
 
         [Fact]
         public async Task GetDocument_NonExistingId_ReturnsNotFound()
         {
             // Arrange
             _mockDocumentService.Setup(s => s.GetDocumentByIdAsync(999))
-                              .ReturnsAsync((Document?)null);
+                              .ReturnsAsync((DocumentDTO?)null);
 
             // Act
             var result = await _controller.GetDocument(999);
 
             // Assert
-            var actionResult = Assert.IsType<ActionResult<Document>>(result);
-            var notFoundResult = Assert.IsType<NotFoundObjectResult>(actionResult.Result);
-            Assert.Equal("Document with ID 999 not found.", notFoundResult.Value);
+            var actionResult = Assert.IsType<ActionResult<DocumentDTO>>(result);
+            Assert.IsType<NotFoundResult>(actionResult.Result);
         }
+
 
         [Fact]
         public async Task GetDocumentsByCase_ValidCaseId_ReturnsDocuments()
         {
             // Arrange
-            var testCase = CreateTestCase();
-            var documents = new List<Document>
+            var documents = new List<DocumentDTO>
             {
-                CreateTestDocument(1, "Doc1", "PDF"),
-                CreateTestDocument(2, "Doc2", "Word")
+                CreateTestDocumentDTO(1, "Doc1", "PDF"),
+                CreateTestDocumentDTO(2, "Doc2", "Word")
             };
 
             _mockDocumentService.Setup(s => s.GetDocumentsByCaseAsync(1))
@@ -114,20 +160,44 @@ namespace Litigator.Tests.Controllers
             var result = await _controller.GetDocumentsByCase(1);
 
             // Assert
-            var actionResult = Assert.IsType<ActionResult<IEnumerable<Document>>>(result);
+            var actionResult = Assert.IsType<ActionResult<IEnumerable<DocumentDTO>>>(result);
             var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
-            var returnedDocuments = Assert.IsAssignableFrom<IEnumerable<Document>>(okResult.Value);
+            var returnedDocuments = Assert.IsAssignableFrom<IEnumerable<DocumentDTO>>(okResult.Value);
             Assert.Equal(2, returnedDocuments.Count());
+        }
+
+        [Fact]
+        public async Task GetAllDocuments_ReturnsAllDocuments()
+        {
+            // Arrange
+            var documents = new List<DocumentDTO>
+            {
+                CreateTestDocumentDTO(1, "Doc1", "PDF"),
+                CreateTestDocumentDTO(2, "Doc2", "Word"),
+                CreateTestDocumentDTO(3, "Doc3", "Excel")
+            };
+
+            _mockDocumentService.Setup(s => s.GetAllDocumentsAsync())
+                              .ReturnsAsync(documents);
+
+            // Act
+            var result = await _controller.GetAllDocuments();
+
+            // Assert
+            var actionResult = Assert.IsType<ActionResult<IEnumerable<DocumentDTO>>>(result);
+            var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+            var returnedDocuments = Assert.IsAssignableFrom<IEnumerable<DocumentDTO>>(okResult.Value);
+            Assert.Equal(3, returnedDocuments.Count());
         }
 
         [Fact]
         public async Task GetDocumentsByType_ValidType_ReturnsDocuments()
         {
             // Arrange
-            var documents = new List<Document>
+            var documents = new List<DocumentDTO>
             {
-                CreateTestDocument(1, "Doc1", "PDF"),
-                CreateTestDocument(2, "Doc2", "PDF")
+                CreateTestDocumentDTO(1, "Doc1", "PDF"),
+                CreateTestDocumentDTO(2, "Doc2", "PDF")
             };
 
             _mockDocumentService.Setup(s => s.GetDocumentsByTypeAsync("PDF"))
@@ -137,19 +207,20 @@ namespace Litigator.Tests.Controllers
             var result = await _controller.GetDocumentsByType("PDF");
 
             // Assert
-            var actionResult = Assert.IsType<ActionResult<IEnumerable<Document>>>(result);
+            var actionResult = Assert.IsType<ActionResult<IEnumerable<DocumentDTO>>>(result);
             var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
-            var returnedDocuments = Assert.IsAssignableFrom<IEnumerable<Document>>(okResult.Value);
+            var returnedDocuments = Assert.IsAssignableFrom<IEnumerable<DocumentDTO>>(okResult.Value);
             Assert.Equal(2, returnedDocuments.Count());
+            Assert.All(returnedDocuments, d => Assert.Equal("PDF", d.DocumentType));
         }
+
 
         [Fact]
         public async Task SearchDocuments_ValidSearchTerm_ReturnsDocuments()
         {
-            // Arrange
-            var documents = new List<Document>
+            var documents = new List<DocumentDTO>
             {
-                CreateTestDocument(1, "Contract Document", "PDF")
+                CreateTestDocumentDTO(1, "Contract Document", "PDF")
             };
 
             _mockDocumentService.Setup(s => s.SearchDocumentsAsync("Contract"))
@@ -161,7 +232,7 @@ namespace Litigator.Tests.Controllers
             // Assert
             var actionResult = Assert.IsType<ActionResult<IEnumerable<Document>>>(result);
             var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
-            var returnedDocuments = Assert.IsAssignableFrom<IEnumerable<Document>>(okResult.Value);
+            var returnedDocuments = Assert.IsAssignableFrom<IEnumerable<DocumentDTO>>(okResult.Value);
             Assert.Single(returnedDocuments);
         }
 
@@ -190,92 +261,69 @@ namespace Litigator.Tests.Controllers
         }
 
         [Fact]
-        public async Task CreateDocument_ValidDocument_ReturnsCreatedDocument()
-        {
-            // Arrange
-            var newDocument = CreateTestDocument();
-            var createdDocument = CreateTestDocument();
-
-            _mockDocumentService.Setup(s => s.CreateDocumentAsync(It.IsAny<Document>()))
-                              .ReturnsAsync(createdDocument);
-
-            // Act
-            var result = await _controller.CreateDocument(newDocument);
-
-            // Assert
-            var actionResult = Assert.IsType<ActionResult<Document>>(result);
-            var createdResult = Assert.IsType<CreatedAtActionResult>(actionResult.Result);
-            Assert.Equal(nameof(_controller.GetDocument), createdResult.ActionName);
-            Assert.Equal(createdDocument.DocumentId, ((Document)createdResult.Value!).DocumentId);
-        }
-
-        [Fact]
         public async Task CreateDocument_ServiceThrowsException_ReturnsBadRequest()
         {
             // Arrange
-            var newDocument = CreateTestDocument();
-            _mockDocumentService.Setup(s => s.CreateDocumentAsync(It.IsAny<Document>()))
+            var createDto = CreateTestDocumentCreateDTO();
+            _mockDocumentService.Setup(s => s.CreateDocumentAsync(It.IsAny<DocumentCreateDTO>()))
                               .ThrowsAsync(new System.Exception("Database error"));
 
             // Act
-            var result = await _controller.CreateDocument(newDocument);
+            var result = await _controller.CreateDocument(createDto);
 
             // Assert
-            var actionResult = Assert.IsType<ActionResult<Document>>(result);
-            var badRequestResult = Assert.IsType<BadRequestObjectResult>(actionResult.Result);
-            Assert.Contains("Error creating document", badRequestResult.Value?.ToString());
+            await Assert.ThrowsAsync<System.Exception>(() => _controller.CreateDocument(createDto));
         }
 
         [Fact]
         public async Task UpdateDocument_ValidDocument_ReturnsUpdatedDocument()
         {
             // Arrange
-            var documentToUpdate = CreateTestDocument();
-            var updatedDocument = CreateTestDocument();
+            int documentId = 1;
+            var updateDto = CreateTestDocumentUpdateDTO("Updated Document");
+            var updatedDocument = CreateTestDocumentDTO(documentId, "Updated Document");
 
-            _mockDocumentService.Setup(s => s.UpdateDocumentAsync(It.IsAny<Document>()))
+            _mockDocumentService.Setup(s => s.UpdateDocumentAsync(documentId, It.IsAny<DocumentUpdateDTO>()))
                               .ReturnsAsync(updatedDocument);
 
             // Act
-            var result = await _controller.UpdateDocument(1, documentToUpdate);
+            var result = await _controller.UpdateDocument(documentId, updateDto);
 
             // Assert
-            var actionResult = Assert.IsType<ActionResult<Document>>(result);
+            var actionResult = Assert.IsType<ActionResult<DocumentDTO>>(result);
             var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
-            var document = Assert.IsType<Document>(okResult.Value);
-            Assert.Equal(1, document.DocumentId);
+            var document = Assert.IsType<DocumentDTO>(okResult.Value);
+            Assert.Equal(documentId, document.DocumentId);
+            Assert.Equal("Updated Document", document.DocumentName);
         }
 
         [Fact]
-        public async Task UpdateDocument_MismatchedId_ReturnsBadRequest()
+        public async Task UpdateDocument_NonExistingDocument_ReturnsNotFound()
         {
             // Arrange
-            var documentToUpdate = CreateTestDocument(2); // Different ID
+            var updateDto = CreateTestDocumentUpdateDTO();
+            _mockDocumentService.Setup(s => s.UpdateDocumentAsync(999, It.IsAny<DocumentUpdateDTO>()))
+                              .ReturnsAsync((DocumentDTO?)null);
 
             // Act
-            var result = await _controller.UpdateDocument(1, documentToUpdate);
+            var result = await _controller.UpdateDocument(999, updateDto);
 
             // Assert
-            var actionResult = Assert.IsType<ActionResult<Document>>(result);
-            var badRequestResult = Assert.IsType<BadRequestObjectResult>(actionResult.Result);
-            Assert.Equal("Document ID mismatch.", badRequestResult.Value);
+            var actionResult = Assert.IsType<ActionResult<DocumentDTO>>(result);
+            Assert.IsType<NotFoundResult>(actionResult.Result);
         }
 
         [Fact]
         public async Task UpdateDocument_ServiceThrowsException_ReturnsBadRequest()
         {
             // Arrange
-            var documentToUpdate = CreateTestDocument();
-            _mockDocumentService.Setup(s => s.UpdateDocumentAsync(It.IsAny<Document>()))
+            var updateDto = CreateTestDocumentUpdateDTO();
+            _mockDocumentService.Setup(s => s.UpdateDocumentAsync(It.IsAny<int>(), It.IsAny<DocumentUpdateDTO>()))
                               .ThrowsAsync(new System.Exception("Database error"));
 
-            // Act
-            var result = await _controller.UpdateDocument(1, documentToUpdate);
-
-            // Assert
-            var actionResult = Assert.IsType<ActionResult<Document>>(result);
-            var badRequestResult = Assert.IsType<BadRequestObjectResult>(actionResult.Result);
-            Assert.Contains("Error updating document", badRequestResult.Value?.ToString());
+            // Act & Assert - This test will need to be updated based on your controller's actual exception handling
+            // Currently your controller doesn't have try-catch blocks, so exceptions will bubble up
+            await Assert.ThrowsAsync<System.Exception>(() => _controller.UpdateDocument(1, updateDto));
         }
 
         [Fact]

@@ -1,17 +1,20 @@
-using Litigator.DataAccess.Entities;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Litigator.DataAccess.Entities;
+using Litigator.Models.DTOs.Document;
 
 namespace Litigator.Services.Interfaces
 {
     public interface IDocumentService
     {
-        Task<IEnumerable<Document>> GetDocumentsByCaseAsync(int caseId);
-        Task<Document?> GetDocumentByIdAsync(int id);
-        Task<Document> CreateDocumentAsync(Document document);
-        Task<Document> UpdateDocumentAsync(Document document);
+        Task<IEnumerable<DocumentDTO>> GetDocumentsByCaseAsync(int caseId);
+        Task<IEnumerable<DocumentDTO>> GetAllDocumentsAsync();
+        Task<DocumentDTO?> GetDocumentByIdAsync(int id);
+        Task<DocumentDTO> CreateDocumentAsync(DocumentCreateDTO createDto);
+        Task<DocumentDTO?> UpdateDocumentAsync(int id, DocumentUpdateDTO updateDto);
         Task<bool> DeleteDocumentAsync(int id);
-        Task<IEnumerable<Document>> SearchDocumentsAsync(string searchTerm);
-        Task<IEnumerable<Document>> GetDocumentsByTypeAsync(string documentType);
+
+        Task<IEnumerable<DocumentDTO>> GetDocumentsByTypeAsync(string documentType);
+        Task<IEnumerable<DocumentDTO>> SearchDocumentsAsync(string searchTerm);
     }
 }

@@ -4,6 +4,7 @@
     <ProjectReference Include="Services.csproj" />
 	<ProjectReference Include="..\Models\Models.csproj" />
 	<ProjectReference Include="..\DataAccess\DataAccess.csproj" />
+	<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </ItemGroup>
 
   <PropertyGroup>

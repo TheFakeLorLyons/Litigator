@@ -1,6 +1,6 @@
-using Litigator.DataAccess.Entities;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Litigator.DataAccess.Entities;
 
 namespace Litigator.Services.Interfaces
 {

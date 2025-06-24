@@ -7,6 +7,7 @@ using Moq;
 using Xunit;
 using Litigator.Controllers;
 using Litigator.DataAccess.Entities;
+using Litigator.Models.DTOs.Deadline;
 using Litigator.Services.Interfaces;
 
 namespace Litigator.Tests.Controllers
@@ -28,19 +29,10 @@ namespace Litigator.Tests.Controllers
         public async Task GetUpcomingDeadlines_ReturnsOkResult_WithDeadlines()
         {
             // Arrange
-            var testCase = new Case
+            var deadlines = new List<DeadlineDTO>
             {
-                CaseId = 1,
-                CaseNumber = "2024-CV-001",
-                CaseTitle = "Test Case",
-                CaseType = "Civil",
-                Client = new Client { ClientId = 1, ClientName = "Test Client", Address = "123 Test St", Phone = "555-0101", Email = "test@example.com" }
-            };
-
-            var deadlines = new List<Deadline>
-            {
-                new Deadline { DeadlineId = 1, DeadlineType = "Motion Filing", DeadlineDate = DateTime.Now.AddDays(5), Case = testCase },
-                new Deadline { DeadlineId = 2, DeadlineType = "Discovery", DeadlineDate = DateTime.Now.AddDays(10), Case = testCase }
+                CreateTestDeadlineDTO(1, "Motion Filing"),
+                CreateTestDeadlineDTO(2, "Discovery")
             };
             _mockDeadlineService.Setup(s => s.GetUpcomingDeadlinesAsync(30))
                 .ReturnsAsync(deadlines);
@@ -50,7 +42,7 @@ namespace Litigator.Tests.Controllers
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnedDeadlines = Assert.IsAssignableFrom<IEnumerable<Deadline>>(okResult.Value);
+            var returnedDeadlines = Assert.IsAssignableFrom<IEnumerable<DeadlineDTO>>(okResult.Value);
             Assert.Equal(2, returnedDeadlines.Count());
         }
 
@@ -59,14 +51,14 @@ namespace Litigator.Tests.Controllers
         {
             // Arrange
             _mockDeadlineService.Setup(s => s.GetUpcomingDeadlinesAsync(30))
-                .ReturnsAsync(new List<Deadline>());
+                .ReturnsAsync(new List<DeadlineDTO>());
 
             // Act
             var result = await _controller.GetUpcomingDeadlines(30);
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnedDeadlines = Assert.IsAssignableFrom<IEnumerable<Deadline>>(okResult.Value);
+            var returnedDeadlines = Assert.IsAssignableFrom<IEnumerable<DeadlineDTO>>(okResult.Value);
             Assert.Empty(returnedDeadlines);
         }
 
@@ -89,19 +81,10 @@ namespace Litigator.Tests.Controllers
         public async Task GetOverdueDeadlines_ReturnsOkResult_WithOverdueDeadlines()
         {
             // Arrange
-            var testCase = new Case
+            var overdueDeadlines = new List<DeadlineDTO>
             {
-                CaseId = 1,
-                CaseNumber = "2024-CV-001",
-                CaseTitle = "Test Case",
-                CaseType = "Civil",
-                Client = new Client { ClientId = 1, ClientName = "Test Client", Address = "123 Test St", Phone = "555-0101", Email = "test@example.com" }
-            };
-
-            var overdueDeadlines = new List<Deadline>
-            {
-                new Deadline { DeadlineId = 1, DeadlineType = "Trial Date", DeadlineDate = DateTime.Now.AddDays(-5), IsCompleted = false, Case = testCase },
-                new Deadline { DeadlineId = 2, DeadlineType = "Filing", DeadlineDate = DateTime.Now.AddDays(-2), IsCompleted = false, Case = testCase }
+                CreateTestDeadlineDTO(1, "Trial Date", 1),
+                CreateTestDeadlineDTO(2, "Filing", 2)
             };
             _mockDeadlineService.Setup(s => s.GetOverdueDeadlinesAsync())
                 .ReturnsAsync(overdueDeadlines);
@@ -111,7 +94,7 @@ namespace Litigator.Tests.Controllers
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnedDeadlines = Assert.IsAssignableFrom<IEnumerable<Deadline>>(okResult.Value);
+            var returnedDeadlines = Assert.IsAssignableFrom<IEnumerable<DeadlineDTO>>(okResult.Value);
             Assert.Equal(2, returnedDeadlines.Count());
         }
 
@@ -120,20 +103,12 @@ namespace Litigator.Tests.Controllers
         {
             // Arrange
             int caseId = 1;
-            var testCase = new Case
+            var deadlines = new List<DeadlineDTO>
             {
-                CaseId = caseId,
-                CaseNumber = "2024-CV-001",
-                CaseTitle = "Test Case",
-                CaseType = "Civil",
-                Client = new Client { ClientId = 1, ClientName = "Test Client", Address = "123 Test St", Phone = "555-0101", Email = "test@example.com" }
+                CreateTestDeadlineDTO(1, "Discovery", caseId),
+                CreateTestDeadlineDTO(2, "Motion", caseId)
             };
-
-            var deadlines = new List<Deadline>
-            {
-                new Deadline { DeadlineId = 1, CaseId = caseId, DeadlineType = "Discovery", DeadlineDate = DateTime.Now.AddDays(15), Case = testCase },
-                new Deadline { DeadlineId = 2, CaseId = caseId, DeadlineType = "Motion", DeadlineDate = DateTime.Now.AddDays(20), Case = testCase }
-            };
+            
             _mockDeadlineService.Setup(s => s.GetDeadlinesByCaseAsync(caseId))
                 .ReturnsAsync(deadlines);
 
@@ -141,10 +116,66 @@ namespace Litigator.Tests.Controllers
             var result = await _controller.GetDeadlinesByCase(caseId);
 
             // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnedDeadlines = Assert.IsAssignableFrom<IEnumerable<Deadline>>(okResult.Value);
+            var actionResult = Assert.IsType<ActionResult<IEnumerable<DeadlineDTO>>>(result);
+            var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+            var returnedDeadlines = Assert.IsAssignableFrom<IEnumerable<DeadlineDTO>>(okResult.Value);
             Assert.Equal(2, returnedDeadlines.Count());
+            Assert.All(returnedDeadlines, d => Assert.Equal(caseId, d.CaseId));
         }
+
+        [Fact]
+        public async Task GetAllDeadlines_ReturnsOkResult_WithAllDeadlines()
+        {
+            // Arrange
+            var deadlines = new List<DeadlineDTO>
+            {
+                CreateTestDeadlineDTO(1, "Motion Filing"),
+                CreateTestDeadlineDTO(2, "Discovery"),
+                CreateTestDeadlineDTO(3, "Trial Date")
+            };
+            _mockDeadlineService.Setup(s => s.GetAllDeadlinesAsync())
+                .ReturnsAsync(deadlines);
+
+            // Act
+            var result = await _controller.GetAllDeadlines();
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result.Result);
+            var returnedDeadlines = Assert.IsAssignableFrom<IEnumerable<DeadlineDTO>>(okResult.Value);
+            Assert.Equal(3, returnedDeadlines.Count());
+        }
+
+        [Fact]
+        public async Task GetDeadline_ExistingId_ReturnsOkResult_WithDeadline()
+        {
+            // Arrange
+            var deadline = CreateTestDeadlineDTO(1);
+            _mockDeadlineService.Setup(s => s.GetDeadlineByIdAsync(1))
+                .ReturnsAsync(deadline);
+
+            // Act
+            var result = await _controller.GetDeadline(1);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result.Result);
+            var returnedDeadline = Assert.IsType<DeadlineDTO>(okResult.Value);
+            Assert.Equal(1, returnedDeadline.DeadlineId);
+        }
+
+        [Fact]
+        public async Task GetDeadline_NonExistingId_ReturnsNotFound()
+        {
+            // Arrange
+            _mockDeadlineService.Setup(s => s.GetDeadlineByIdAsync(999))
+                .ReturnsAsync((DeadlineDTO?)null);
+
+            // Act
+            var result = await _controller.GetDeadline(999);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result.Result);
+        }
+
 
         [Fact]
         public async Task GetDeadlinesByCase_ReturnsBadRequest_WhenCaseIdIsZero()
@@ -156,52 +187,64 @@ namespace Litigator.Tests.Controllers
             Assert.IsType<BadRequestObjectResult>(result.Result);
         }
 
+        private DeadlineDTO CreateTestDeadlineDTO(int id = 1, string type = "Motion Filing", int caseId = 1)
+        {
+            return new DeadlineDTO
+            {
+                DeadlineId = id,
+                DeadlineType = type,
+                Description = $"Test {type}",
+                DeadlineDate = DateTime.Now.AddDays(10),
+                IsCompleted = false,
+                CompletedDate = null,
+                IsCritical = false,
+                CaseId = caseId,
+                CaseNumber = $"2024-CV-{caseId:000}",
+                CaseTitle = $"Test Case {caseId}"
+            };
+        }
+
+        private DeadlineCreateDTO CreateTestDeadlineCreateDTO(int caseId = 1)
+        {
+            return new DeadlineCreateDTO
+            {
+                DeadlineType = "Motion Filing",
+                Description = "File motion to dismiss",
+                DeadlineDate = DateTime.Now.AddDays(30),
+                CaseId = caseId,
+                IsCritical = true
+            };
+        }
+
         [Fact]
-        public async Task CreateDeadline_ReturnsCreatedAtAction_WhenDeadlineIsValid()
+        public async Task CreateDeadline_ValidDeadline_ReturnsCreatedAtAction()
         {
             // Arrange
-            var testCase = new Case
-            {
-                CaseId = 1,
-                CaseNumber = "2024-CV-001",
-                CaseTitle = "Test Case",
-                CaseType = "Civil",
-                Client = new Client { ClientId = 1, ClientName = "Test Client", Address = "123 Test St", Phone = "555-0101", Email = "test@example.com" }
-            };
-
-            var newDeadline = new Deadline
+            var createDto = new DeadlineCreateDTO
             {
                 DeadlineType = "Motion Filing",
                 Description = "File motion to dismiss",
                 DeadlineDate = DateTime.Now.AddDays(30),
                 CaseId = 1,
-                IsCritical = true,
-                Case = testCase
+                IsCritical = true
             };
 
-            var createdDeadline = new Deadline
-            {
-                DeadlineId = 1,
-                DeadlineType = newDeadline.DeadlineType,
-                Description = newDeadline.Description,
-                DeadlineDate = newDeadline.DeadlineDate,
-                CaseId = newDeadline.CaseId,
-                IsCritical = newDeadline.IsCritical,
-                Case = testCase
-            };
+            var createdDeadline = CreateTestDeadlineDTO(1, "Motion Filing");
+            createdDeadline.IsCritical = true;
 
-            _mockDeadlineService.Setup(s => s.CreateDeadlineAsync(It.IsAny<Deadline>()))
+            _mockDeadlineService.Setup(s => s.CreateDeadlineAsync(It.IsAny<DeadlineCreateDTO>()))
                 .ReturnsAsync(createdDeadline);
 
             // Act
-            var result = await _controller.CreateDeadline(newDeadline);
+            var result = await _controller.CreateDeadline(createDto);
 
             // Assert
             var createdAtActionResult = Assert.IsType<CreatedAtActionResult>(result.Result);
-            Assert.Equal(nameof(DeadlineController.GetDeadlinesByCase), createdAtActionResult.ActionName);
-            var returnedDeadline = Assert.IsType<Deadline>(createdAtActionResult.Value);
+            Assert.Equal(nameof(DeadlineController.GetDeadline), createdAtActionResult.ActionName);
+            var returnedDeadline = Assert.IsType<DeadlineDTO>(createdAtActionResult.Value);
             Assert.Equal(1, returnedDeadline.DeadlineId);
         }
+
 
         [Fact]
         public async Task CreateDeadline_ReturnsBadRequest_WhenDeadlineIsNull()
@@ -217,62 +260,61 @@ namespace Litigator.Tests.Controllers
         public async Task CreateDeadline_ReturnsBadRequest_WhenModelStateIsInvalid()
         {
             // Arrange
-            var testCase = new Case
+            var createDto = new DeadlineCreateDTO
             {
+                DeadlineType = "", // Invalid - required field
+                Description = "Test description",
+                DeadlineDate = DateTime.Now.AddDays(30),
                 CaseId = 1,
-                CaseNumber = "2024-CV-001",
-                CaseTitle = "Test Case",
-                CaseType = "Civil",
-                Client = new Client { ClientId = 1, ClientName = "Test Client", Address = "123 Test St", Phone = "555-0101", Email = "test@example.com" }
+                IsCritical = false
             };
 
-            var invalidDeadline = new Deadline
-            {
-                DeadlineType = "Test",
-                Case = testCase
-            }; // Still missing some required fields but has the required ones for compilation
             _controller.ModelState.AddModelError("DeadlineType", "DeadlineType is required");
 
-            // Act
-            var result = await _controller.CreateDeadline(invalidDeadline);
-
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(result.Result);
+            // Act & Assert
+            var result = await _controller.CreateDeadline(createDto);
         }
 
-        [Fact]
-        public async Task UpdateDeadline_ReturnsOkResult_WhenDeadlineIsUpdated()
+        private DeadlineUpdateDTO CreateTestDeadlineUpdateDTO()
         {
-            // Arrange
-            int deadlineId = 1;
-            var testCase = new Case
+            return new DeadlineUpdateDTO
             {
-                CaseId = 1,
-                CaseNumber = "2024-CV-001",
-                CaseTitle = "Test Case",
-                CaseType = "Civil",
-                Client = new Client { ClientId = 1, ClientName = "Test Client", Address = "123 Test St", Phone = "555-0101", Email = "test@example.com" }
-            };
-
-            var updatedDeadline = new Deadline
-            {
-                DeadlineId = deadlineId,
                 DeadlineType = "Updated Motion",
                 Description = "Updated description",
                 DeadlineDate = DateTime.Now.AddDays(45),
-                CaseId = 1,
-                Case = testCase
+                IsCompleted = false,
+                CompletedDate = null,
+                IsCritical = true
+            };
+        }
+
+        [Fact]
+        public async Task UpdateDeadline_ValidDeadline_ReturnsOkResult()
+        {
+            // Arrange
+            int deadlineId = 1;
+            var updateDto = new DeadlineUpdateDTO
+            {
+                DeadlineType = "Updated Motion",
+                Description = "Updated description",
+                DeadlineDate = DateTime.Now.AddDays(45),
+                IsCompleted = false,
+                CompletedDate = null,
+                IsCritical = true
             };
 
-            _mockDeadlineService.Setup(s => s.UpdateDeadlineAsync(It.IsAny<Deadline>()))
+            var updatedDeadline = CreateTestDeadlineDTO(deadlineId, "Updated Motion");
+            updatedDeadline.IsCritical = true;
+
+            _mockDeadlineService.Setup(s => s.UpdateDeadlineAsync(deadlineId, It.IsAny<DeadlineUpdateDTO>()))
                 .ReturnsAsync(updatedDeadline);
 
             // Act
-            var result = await _controller.UpdateDeadline(deadlineId, updatedDeadline);
+            var result = await _controller.UpdateDeadline(deadlineId, updateDto);
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnedDeadline = Assert.IsType<Deadline>(okResult.Value);
+            var returnedDeadline = Assert.IsType<DeadlineDTO>(okResult.Value);
             Assert.Equal("Updated Motion", returnedDeadline.DeadlineType);
         }
 
@@ -280,37 +322,33 @@ namespace Litigator.Tests.Controllers
         public async Task UpdateDeadline_ReturnsBadRequest_WhenIdsDoNotMatch()
         {
             // Arrange
-            var testCase = new Case
-            {
-                CaseId = 1,
-                CaseNumber = "2024-CV-001",
-                CaseTitle = "Test Case",
-                CaseType = "Civil",
-                Client = new Client { ClientId = 1, ClientName = "Test Client", Address = "123 Test St", Phone = "555-0101", Email = "test@example.com" }
-            };
-
-            var deadline = new Deadline
-            {
-                DeadlineId = 2,
-                DeadlineType = "Test",
-                Case = testCase
-            };
+            var updateDto = CreateTestDeadlineUpdateDTO();
 
             // Act
-            var result = await _controller.UpdateDeadline(1, deadline);
+            var result = await _controller.UpdateDeadline(1, updateDto);
 
             // Assert
             Assert.IsType<BadRequestObjectResult>(result.Result);
         }
 
         [Fact]
-        public async Task UpdateDeadline_ReturnsBadRequest_WhenDeadlineIsNull()
+        public async Task UpdateDeadline_NonExistingDeadline_ReturnsNotFound()
         {
+            // Arrange
+            var updateDto = new DeadlineUpdateDTO
+            {
+                DeadlineType = "Test",
+                DeadlineDate = DateTime.Now.AddDays(10)
+            };
+
+            _mockDeadlineService.Setup(s => s.UpdateDeadlineAsync(999, It.IsAny<DeadlineUpdateDTO>()))
+                .ReturnsAsync((DeadlineDTO?)null);
+
             // Act
-            var result = await _controller.UpdateDeadline(1, null!);
+            var result = await _controller.UpdateDeadline(999, updateDto);
 
             // Assert
-            Assert.IsType<BadRequestObjectResult>(result.Result);
+            Assert.IsType<NotFoundResult>(result.Result);
         }
 
         [Fact]
@@ -398,19 +436,10 @@ namespace Litigator.Tests.Controllers
         public async Task GetCriticalDeadlines_ReturnsOkResult_WithCriticalDeadlines()
         {
             // Arrange
-            var testCase = new Case
+            var criticalDeadlines = new List<DeadlineDTO>
             {
-                CaseId = 1,
-                CaseNumber = "2024-CV-001",
-                CaseTitle = "Test Case",
-                CaseType = "Civil",
-                Client = new Client { ClientId = 1, ClientName = "Test Client", Address = "123 Test St", Phone = "555-0101", Email = "test@example.com" }
-            };
-
-            var criticalDeadlines = new List<Deadline>
-            {
-                new Deadline { DeadlineId = 1, DeadlineType = "Trial Date", IsCritical = true, DeadlineDate = DateTime.Now.AddDays(7), Case = testCase },
-                new Deadline { DeadlineId = 2, DeadlineType = "Settlement Conference", IsCritical = true, DeadlineDate = DateTime.Now.AddDays(3), Case = testCase }
+                CreateTestDeadlineDTO(1, "Trial Date"),
+                CreateTestDeadlineDTO(2, "Settlement Conference")
             };
             _mockDeadlineService.Setup(s => s.GetCriticalDeadlinesAsync())
                 .ReturnsAsync(criticalDeadlines);
@@ -420,7 +449,7 @@ namespace Litigator.Tests.Controllers
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnedDeadlines = Assert.IsAssignableFrom<IEnumerable<Deadline>>(okResult.Value);
+            var returnedDeadlines = Assert.IsAssignableFrom<IEnumerable<DeadlineDTO>>(okResult.Value);
             Assert.Equal(2, returnedDeadlines.Count());
             Assert.All(returnedDeadlines, d => Assert.True(d.IsCritical));
         }

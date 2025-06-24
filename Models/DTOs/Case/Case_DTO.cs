@@ -10,7 +10,8 @@ namespace Litigator.Models.DTOs.Case
         public required string Status { get; set; }
         public decimal? EstimatedValue { get; set; }
         public required string ClientName { get; set; }
-        public string? AttorneyName { get; set; }
+        public string? AttorneyFirstName { get; set; }
+        public string? AttorneyLastName { get; set; }
         public string? CourtName { get; set; }
         public int OpenDeadlines { get; set; }
     }
