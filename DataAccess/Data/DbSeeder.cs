@@ -121,23 +121,36 @@ namespace Litigator.DataAccess.Data
                 var judges = context.Judges.ToList();
                 var courts = new[]
                 {
-                    new Court {
-                        CourtName = "New York Supreme Court",
-                        CourtType = "State",
-                        Division = "Civil",
-                        Address = Address.Create("60 Centre Street", "New York", "NY", "10007"),
-                        Phone = PhoneNumber.Create("(212) 374-8875"),
-                        Email = "BronxFamilyCourt@nycourts.gov",
-                        Website = "https://ww2.nycourts.gov/courts/nyc/family/contactus.shtml",
-                        ClerkOfCourt = "Maria Rodriguez",
-                        BusinessHours = "9:00 AM - 5:00 PM, Monday - Friday",
-                        IsActive = true
+                new Court {
+                    CourtName = "New York Supreme Court",
+                    CourtType = "State",
+                    Division = "Civil",
+                    Address = Address.Create(
+                        line1: "60 Centre Street",
+                        city: "New York",
+                        state: "NY",
+                        county: "Manhattan",
+                        postalCode: "10007"
+                    ),
+
+                    Phone = PhoneNumber.Create("(212) 374-8875"),
+                    Email = "BronxFamilyCourt@nycourts.gov",
+                    Website = "https://ww2.nycourts.gov/courts/nyc/family/contactus.shtml",
+                    ClerkOfCourt = "Maria Rodriguez",
+                    BusinessHours = "9:00 AM - 5:00 PM, Monday - Friday",
+                    IsActive = true
                     },
                     new Court {
                         CourtName = "U.S. District Court SDNY",
                         CourtType = "Federal",
                         Division = "Civil",
-                        Address = Address.Create("40 Foley Square", "New York", "NY", "10007"),
+                        Address = Address.Create(
+                            line1: "40 Foley Square",
+                            city: "New York",
+                            state: "NY",
+                            county: "Manhattan",
+                            postalCode: "10007"
+                        ),
                         Phone = PhoneNumber.Create("(212) 805-0136"),
                         Email = "kingsfamilycourt@nycourts.gov",
                         Website = "https://ww2.nycourts.gov/courts/nyc/family/contactus.shtml",
@@ -149,7 +162,13 @@ namespace Litigator.DataAccess.Data
                         CourtName = "Nassau County Court",
                         CourtType = "State",
                         Division = "Criminal",
-                        Address = Address.Create("262 Old Country Road", "Mineola", "NY", "11501"),
+                        Address = Address.Create(
+                            line1: "262 Old Country Road",
+                            city: "Mineola",
+                            state: "NY",
+                            county: "Brooklyn",
+                            postalCode: "11501"
+                        ),
                         Phone = PhoneNumber.Create("(516) 571-2905"),
                         Email = "manhattanfamilycourt@nycourts.gov",
                         Website = "https://ww2.nycourts.gov/courts/nyc/family/contactus.shtml",
@@ -161,7 +180,13 @@ namespace Litigator.DataAccess.Data
                         CourtName = "Kings County Supreme Court",
                         CourtType = "State",
                         Division = "Civil",
-                        Address = Address.Create("360 Adams Street", "Brooklyn", "NY", "11201"),
+                        Address = Address.Create(
+                            line1: "360 Adams Street",
+                            city: "Brooklyn",
+                            county: "Kings",
+                            state: "NY",
+                            postalCode: "11201"
+                        ),
                         Phone = PhoneNumber.Create("(347) 401-9000"),
                         Email = "queensfamilycourt@nycourts.gov",
                         Website = "https://ww2.nycourts.gov/courts/nyc/family/contactus.shtml",
@@ -173,7 +198,13 @@ namespace Litigator.DataAccess.Data
                         CourtName = "U.S. District Court EDNY",
                         CourtType = "Federal",
                         Division = "Civil",
-                        Address = Address.Create("225 Cadman Plaza East", "Brooklyn", "NY", "11201"),
+                        Address = Address.Create(
+                            line1: "225 Cadman Plaza East",
+                            city: "Brooklyn",
+                            county: "Brooklyn",
+                            state: "NY",
+                            postalCode: "11201"
+                        ),
                         Phone = PhoneNumber.Create("(718) 613-2600"),
                         Email = "richmondfamilycourt@nycourts.gov",
                         Website = "https://ww2.nycourts.gov/courts/nyc/family/contactus.shtml",
@@ -270,28 +301,71 @@ namespace Litigator.DataAccess.Data
             // Load existing data
             var courts = context.Courts.Include(c => c.LegalProfessionals).ToList();
             var judges = context.Judges.ToList();
-            var clients = context.Clients.ToList();
-            var attorneys = context.Attorneys.ToList();
+            var clients = context.Clients.Include(c => c.Attorneys).ToList(); // Include existing relationships
+            var attorneys = context.Attorneys.Include(a => a.Clients).ToList(); // Include existing relationships
             var legalProfessionals = attorneys.Cast<LegalProfessional>().ToList();
             legalProfessionals.AddRange(judges);
 
-            // Assign attorneys to clients
+            // Assign attorneys to clients - FIXED VERSION
             foreach (var client in clients)
             {
+                // Skip if client already has attorneys assigned
+                if (client.Attorneys.Any()) continue;
+
                 // Assign 1 to 3 random attorneys per client
-                var assignedAttorneys = attorneys.OrderBy(_ => Guid.NewGuid()).Take(random.Next(1, 4)).ToList();
+                var numAttorneys = random.Next(1, 4);
+                var availableAttorneys = attorneys.Where(a => !client.Attorneys.Contains(a)).ToList();
+
+                var assignedAttorneys = availableAttorneys
+                    .OrderBy(_ => Guid.NewGuid())
+                    .Take(Math.Min(numAttorneys, availableAttorneys.Count))
+                    .ToList();
+
                 foreach (var attorney in assignedAttorneys)
                 {
-                    client.Attorneys.Add(attorney);
+                    // Only add if relationship doesn't already exist
+                    if (!client.Attorneys.Contains(attorney))
+                    {
+                        client.Attorneys.Add(attorney);
+                    }
                 }
             }
 
-            // Assign legal professionals to courts
+            // Assign legal professionals to courts - FIXED VERSION
             foreach (var court in courts)
             {
-                court.LegalProfessionals = legalProfessionals.OrderBy(_ => Guid.NewGuid()).Take(5).ToList();
+                // Skip if court already has legal professionals assigned
+                if (court.LegalProfessionals.Any()) continue;
+
+                var availableLegalProfessionals = legalProfessionals
+                    .Where(lp => !court.LegalProfessionals.Contains(lp))
+                    .ToList();
+
+                var assignedLegalProfessionals = availableLegalProfessionals
+                    .OrderBy(_ => Guid.NewGuid())
+                    .Take(Math.Min(5, availableLegalProfessionals.Count))
+                    .ToList();
+
+                foreach (var legalProfessional in assignedLegalProfessionals)
+                {
+                    if (!court.LegalProfessionals.Contains(legalProfessional))
+                    {
+                        court.LegalProfessionals.Add(legalProfessional);
+                    }
+                }
             }
-            context.SaveChanges();
+
+            try
+            {
+                context.SaveChanges();
+            }
+            catch (DbUpdateException ex)
+            {
+                // Log the error and continue with other seeding
+                Console.WriteLine($"Error saving client-attorney relationships: {ex.Message}");
+                // Optionally, you can clear the change tracker and continue
+                context.ChangeTracker.Clear();
+            }
 
             // Generate additional clients
             if (context.Clients.Count() < 50)
@@ -327,7 +401,10 @@ namespace Litigator.DataAccess.Data
                     .RuleFor(c => c.FilingDate, f => f.Date.Past(2))
                     .RuleFor(c => c.Status, f => f.PickRandom(statuses))
                     .RuleFor(c => c.EstimatedValue, f => f.Random.Bool(0.8f) ? f.Random.Decimal(5000, 2000000) : null)
-                    .RuleFor(c => c.CourtId, f => f.PickRandom(courts).CourtId);
+                    .RuleFor(c => c.CourtId, f => f.PickRandom(courts).CourtId)
+                    .RuleFor(c => c.ClientId, f => f.PickRandom(clients).SystemId)
+                    .RuleFor(c => c.AssignedAttorneyId, f => f.PickRandom(attorneys).SystemId)
+                    .RuleFor(c => c.AssignedJudgeId, f => f.PickRandom(judges).SystemId);
 
                 var cases = caseFaker.GenerateBetween(80, 100);
                 context.Cases.AddRange(cases);
