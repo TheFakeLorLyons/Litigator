@@ -1,8 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Litigator.DataAccess.Entities;
-using Litigator.Models.DTOs.Case;
+using Litigator.Models.DTOs.ClassDTOs;
 using Litigator.Services.Interfaces;
 
 namespace Litigator.Controllers
@@ -26,62 +23,58 @@ namespace Litigator.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Case>> GetCase(int id)
+        public async Task<ActionResult<CaseDetailDTO>> GetCase(int id)
         {
             var case_ = await _caseService.GetCaseByIdAsync(id);
             if (case_ == null)
                 return NotFound($"Case with ID {id} not found.");
-
             return Ok(case_);
         }
 
         [HttpGet("number/{caseNumber}")]
-        public async Task<ActionResult<Case>> GetCaseByNumber(string caseNumber)
+        public async Task<ActionResult<CaseDetailDTO>> GetCaseByNumber(string caseNumber)
         {
             var case_ = await _caseService.GetCaseByNumberAsync(caseNumber);
             if (case_ == null)
                 return NotFound($"Case with number {caseNumber} not found.");
-
             return Ok(case_);
         }
 
         [HttpGet("client/{clientId}")]
-        public async Task<ActionResult<IEnumerable<Case>>> GetCasesByClient(int clientId)
+        public async Task<ActionResult<IEnumerable<CaseDTO>>> GetCasesByClient(int clientId)
         {
             var cases = await _caseService.GetCasesByClientAsync(clientId);
             return Ok(cases);
         }
 
         [HttpGet("attorney/{attorneyId}")]
-        public async Task<ActionResult<IEnumerable<Case>>> GetCasesByAttorney(int attorneyId)
+        public async Task<ActionResult<IEnumerable<CaseDTO>>> GetCasesByAttorney(int attorneyId)
         {
             var cases = await _caseService.GetCasesByAttorneyAsync(attorneyId);
             return Ok(cases);
         }
 
         [HttpGet("active")]
-        public async Task<ActionResult<IEnumerable<Case>>> GetActiveCases()
+        public async Task<ActionResult<IEnumerable<CaseDTO>>> GetActiveCases()
         {
             var cases = await _caseService.GetActiveCasesAsync();
             return Ok(cases);
         }
 
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<Case>>> SearchCases([FromQuery] string searchTerm)
+        public async Task<ActionResult<IEnumerable<CaseDTO>>> SearchCases([FromQuery] string searchTerm)
         {
             if (string.IsNullOrWhiteSpace(searchTerm))
                 return BadRequest("Search term is required.");
-
             var cases = await _caseService.SearchCasesAsync(searchTerm);
             return Ok(cases);
         }
 
         [HttpPost]
-        public async Task<ActionResult<Case>> CreateCase([FromBody] Case case_)
+        public async Task<ActionResult<CaseDetailDTO>> CreateCase([FromBody] Case case_)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
             try
             {
                 var createdCase = await _caseService.CreateCaseAsync(case_);
@@ -94,14 +87,12 @@ namespace Litigator.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<Case>> UpdateCase(int id, [FromBody] Case case_)
+        public async Task<ActionResult<CaseDetailDTO>> UpdateCase(int id, [FromBody] Case case_)
         {
             if (id != case_.CaseId)
                 return BadRequest("Case ID mismatch.");
-
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
             try
             {
                 var updatedCase = await _caseService.UpdateCaseAsync(case_);
@@ -119,7 +110,6 @@ namespace Litigator.Controllers
             var result = await _caseService.DeleteCaseAsync(id);
             if (!result)
                 return NotFound($"Case with ID {id} not found.");
-
             return NoContent();
         }
     }

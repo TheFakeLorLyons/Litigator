@@ -1,5 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 using System.Reflection.Metadata;
 
 namespace Litigator.DataAccess.Entities
@@ -17,22 +16,31 @@ namespace Litigator.DataAccess.Entities
         [MaxLength(20)]
         public string Status { get; set; } = "Active"; // Active, Closed, Pending
         public decimal? EstimatedValue { get; set; }
+        [Precision(18, 2)]
+        public decimal? CurrentRealCost { get; set; }
 
         // Foreign Keys
         public int ClientId { get; set; }
         public int AssignedAttorneyId { get; set; }
+        public int AssignedJudgeId { get; set; }
         public int CourtId { get; set; }
 
         // Navigation properties
-        [System.Text.Json.Serialization.JsonIgnore]
-        public virtual required Client Client { get; set; }
-        [System.Text.Json.Serialization.JsonIgnore]
-        public virtual Attorney? AssignedAttorney { get; set; }
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public virtual Court? Court { get; set; }
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
+        public virtual Client Client { get; set; } = default!;
+        [JsonIgnore]
+        public virtual Attorney AssignedAttorney { get; set; } = default!;
+        [JsonIgnore]
+        public virtual Judge AssignedJudge { get; set; } = default!;
+        [JsonIgnore]
+        public virtual ICollection<Attorney> Attorneys { get; set; } = new List<Attorney>();
+        [JsonIgnore]
+        public virtual ICollection<Client> Clients { get; set; } = new List<Client>();
+        [JsonIgnore]
         public virtual ICollection<Deadline> Deadlines { get; set; } = new List<Deadline>();
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
     }
 }

@@ -26,6 +26,8 @@ namespace Litigator
             builder.Services.AddScoped<IDeadlineService, DeadlineService>();
             builder.Services.AddScoped<IDocumentService, DocumentService>();
             builder.Services.AddScoped<ICourtService, CourtService>();
+            builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+
 
             builder.Services.AddControllers()
             .AddJsonOptions(options =>

@@ -1,17 +1,22 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Litigator.DataAccess.Entities;
+using Litigator.Models.DTOs.ClassDTOs;
 
 namespace Litigator.Services.Interfaces
 {
     public interface IAttorneyService
     {
-        Task<IEnumerable<Attorney>> GetAllAttorneysAsync();
-        Task<Attorney?> GetAttorneyByIdAsync(int id);
-        Task<Attorney?> GetAttorneyByBarNumberAsync(string barNumber);
-        Task<Attorney> CreateAttorneyAsync(Attorney attorney);
-        Task<Attorney> UpdateAttorneyAsync(Attorney attorney);
+        // Read operations - return DTOs
+        Task<IEnumerable<AttorneyDTO>> GetAllAttorneysAsync();
+        Task<AttorneyDetailDTO?> GetAttorneyByIdAsync(int id);
+        Task<AttorneyDetailDTO?> GetAttorneyByBarNumberAsync(string barNumber);
+        Task<IEnumerable<AttorneyDTO>> GetActiveAttorneysAsync();
+
+        // Write operations - accept and return DTOs
+        Task<AttorneyDetailDTO> CreateAttorneyAsync(AttorneyDetailDTO attorneyDto);
+        Task<AttorneyDetailDTO> UpdateAttorneyAsync(AttorneyDetailDTO attorneyDto);
         Task<bool> DeleteAttorneyAsync(int id);
-        Task<IEnumerable<Attorney>> GetActiveAttorneysAsync();
+
+        // Entity access for business logic
+        Task<Attorney?> GetAttorneyEntityByIdAsync(int id);
     }
 }

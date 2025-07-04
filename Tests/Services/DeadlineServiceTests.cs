@@ -1,11 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using Bogus;
 using Xunit;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Litigator.DataAccess.Data;
 using Litigator.DataAccess.Entities;
+using Litigator.DataAccess.ValueObjects;
 using Litigator.Models.DTOs.Deadline;
 using Litigator.Models.Mapping;
 using Litigator.Services.Implementations;
@@ -27,7 +25,6 @@ public class DeadlineServiceTests : IDisposable
         _context = new LitigatorDbContext(options);
 
         var config = new MapperConfiguration(cfg => cfg.AddProfile<LitigatorMappingProfile>());
-
         _mapper = config.CreateMapper();
         _deadlineService = new DeadlineService(_context, _mapper);
 
@@ -55,30 +52,34 @@ public class DeadlineServiceTests : IDisposable
     {
         var attorney = new Attorney
         {
-            AttorneyId = 1,
-            FirstName = "Jane",
-            LastName = "Smith",
+            SystemId = 1,
+            Name = PersonName.Create("Jane", "Smith"),
             BarNumber = "67890",
             Email = "jane.smith@law.com",
-            Phone = "617-232-1234"
+            PrimaryPhone = PhoneNumber.Create("617-232-1234"),
+            PrimaryAddress = Address.Create("456 Lawyer Street", "Law City", "NY", "10001"),
+            Specialization = Litigator.DataAccess.Enums.LegalSpecialization.GeneralPractice,
+            IsActive = true
         };
 
         var client = new Client
         {
-            ClientId = 1,
-            ClientName = "Deadline Test Client",
-            Address = "456 Test Ave",
-            Phone = "(555) 987-6543",
-            Email = "deadlineclient@test.com"
+            SystemId = 1,
+            Name = PersonName.Create("John", "Doe"),
+            PrimaryAddress = Address.Create("456 Test Ave", "Test City", "NY", "12345"),
+            PrimaryPhone = PhoneNumber.Create("555-987-6543"),
+            Email = "deadlineclient@test.com",
+            IsActive = true
         };
 
         var court = new Court
         {
             CourtId = 1,
             CourtName = "Deadline Test Court",
-            Address = "123 Fake Street",
-            County = "Test County",
-            State = "NY",
+            Address = Address.Create("123 Fake Street", "Test City", "NY", "12345"),
+            Phone = PhoneNumber.Create("(123) 456-7890"),
+            Email = "BronxFamilyCourt@nycourts.gov",
+            Website = "https://ww2.nycourts.gov/courts/nyc/family/contactus.shtml",
             CourtType = "State"
         };
 
@@ -88,12 +89,12 @@ public class DeadlineServiceTests : IDisposable
             CaseNumber = "2024-DEADLINE-001",
             CaseTitle = "Deadline Test Case",
             CaseType = "Civil",
-            FilingDate = DateTime.Now.AddDays(-30),
             Status = "Active",
             Client = client,
             ClientId = 1,
             AssignedAttorneyId = 1,
-            CourtId = 1
+            CourtId = 1,
+            FilingDate = DateTime.Now
         };
 
         _context.Attorneys.Add(attorney);
@@ -314,22 +315,22 @@ public class DeadlineServiceTests : IDisposable
         var testCase = _context.Cases.First();
         var deadlines = new List<Deadline>
         {
-            new Deadline 
-            { 
-                DeadlineType = "Filing", 
-                Description = "Test Filing", 
-                DeadlineDate = DateTime.Now.AddDays(5), 
-                Case = testCase, 
+            new Deadline
+            {
+                DeadlineType = "Filing",
+                Description = "Test Filing",
+                DeadlineDate = DateTime.Now.AddDays(5),
+                Case = testCase,
                 CaseId = testCase.CaseId,
                 IsCompleted = false,
                 IsCritical = true
             },
-            new Deadline 
-            { 
-                DeadlineType = "Discovery", 
-                Description = "Test Discovery", 
-                DeadlineDate = DateTime.Now.AddDays(15), 
-                Case = testCase, 
+            new Deadline
+            {
+                DeadlineType = "Discovery",
+                Description = "Test Discovery",
+                DeadlineDate = DateTime.Now.AddDays(15),
+                Case = testCase,
                 CaseId = testCase.CaseId,
                 IsCompleted = false,
                 IsCritical = false

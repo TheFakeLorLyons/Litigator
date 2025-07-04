@@ -1,6 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
-
 namespace Litigator.DataAccess.Entities
 {
 	public class Document

@@ -1,11 +1,10 @@
-using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using Bogus;
 using Xunit;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Litigator.DataAccess.Data;
 using Litigator.DataAccess.Entities;
+using Litigator.DataAccess.Enums;
+using Litigator.DataAccess.ValueObjects;
 using Litigator.Models.DTOs.Document;
 using Litigator.Models.Mapping;
 using Litigator.Services.Implementations;
@@ -53,30 +52,34 @@ public class DocumentServiceTests : IDisposable
     {
         var attorney = new Attorney
         {
-            AttorneyId = 1,
-            FirstName = "Test Attorney",
-            LastName = "Attorney",
+            SystemId = 1,
+            Name = PersonName.Create("Test Attorney"),
             BarNumber = "TEST001",
             Email = "test@law.com",
-            Phone = "617-555-1234"
+            PrimaryPhone = PhoneNumber.Create("617 -555-1234"),
+            PrimaryAddress = Address.Create("456 Lawyer Blvd", "Law City", "NY", "10001"),
+            Specialization = Litigator.DataAccess.Enums.LegalSpecialization.GeneralPractice,
+            IsActive = true
         };
 
         var client = new Client
         {
-            ClientId = 1,
-            ClientName = "Test Client",
+            SystemId = 1,
+            Name = PersonName.Create("Test Client"),
+            PrimaryAddress = Address.Create("456 Test Ave", "Test City", "NY", "12345"),
+            PrimaryPhone = PhoneNumber.Create("(555) 123-4567"),
             Email = "client@test.com",
-            Address = "123 Test St",
-            Phone = "413-555-1234"
+            IsActive = true
         };
 
         var court = new Court
         {
             CourtId = 1,
             CourtName = "Test Court",
-            Address = "123 Fake Street",
-            County = "Test County",
-            State = "NY",
+            Address = Address.Create("123 Main St", "Test City", "TX", "12345"),
+            Phone = PhoneNumber.Create("(123) 456-7890"),
+            Email = "BronxFamilyCourt@nycourts.gov",
+            Website = "https://ww2.nycourts.gov/courts/nyc/family/contactus.shtml",
             CourtType = "State"
         };
 

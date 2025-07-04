@@ -1,11 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System;
 using Litigator.Controllers;
 using Litigator.DataAccess.Entities;
+using Litigator.DataAccess.ValueObjects;
 using Litigator.Models.DTOs.Document;
 using Litigator.Services.Interfaces;
 
@@ -79,11 +76,17 @@ namespace Litigator.Tests.Controllers
                 CourtId = 1,
                 Client = new Client
                 {
-                    ClientId = 1,
-                    ClientName = "Test Client",
-                    Address = "123 Test Street, Test City, TS 12345",
-                    Phone = "555-1234",
-                    Email = "test@example.com"
+                    Name = new PersonName { First = "John", Last = "Doe" },
+                    Email = "john.doe@example.com",
+                    PrimaryAddress = new Address
+                    {
+                        Line1 = "123 Test Street",
+                        City = "Test City",
+                        State = "TS",
+                        PostalCode = "12345"
+                    },
+                    PrimaryPhone = new PhoneNumber { Number = "555-1234" },
+                    IsActive = true
                 }
             };
         }
@@ -230,7 +233,7 @@ namespace Litigator.Tests.Controllers
             var result = await _controller.SearchDocuments("Contract");
 
             // Assert
-            var actionResult = Assert.IsType<ActionResult<IEnumerable<Document>>>(result);
+            var actionResult = Assert.IsType<ActionResult<IEnumerable<DocumentDTO>>>(result);
             var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
             var returnedDocuments = Assert.IsAssignableFrom<IEnumerable<DocumentDTO>>(okResult.Value);
             Assert.Single(returnedDocuments);
@@ -243,7 +246,7 @@ namespace Litigator.Tests.Controllers
             var result = await _controller.SearchDocuments("");
 
             // Assert
-            var actionResult = Assert.IsType<ActionResult<IEnumerable<Document>>>(result);
+            var actionResult = Assert.IsType<ActionResult<IEnumerable<DocumentDTO>>>(result);
             var badRequestResult = Assert.IsType<BadRequestObjectResult>(actionResult.Result);
             Assert.Equal("Search term is required.", badRequestResult.Value);
         }
@@ -255,23 +258,20 @@ namespace Litigator.Tests.Controllers
             var result = await _controller.SearchDocuments("   ");
 
             // Assert
-            var actionResult = Assert.IsType<ActionResult<IEnumerable<Document>>>(result);
+            var actionResult = Assert.IsType<ActionResult<IEnumerable<DocumentDTO>>>(result);
             var badRequestResult = Assert.IsType<BadRequestObjectResult>(actionResult.Result);
             Assert.Equal("Search term is required.", badRequestResult.Value);
         }
 
         [Fact]
-        public async Task CreateDocument_ServiceThrowsException_ReturnsBadRequest()
+        public async Task CreateDocument_ServiceThrowsException_ThrowsException()
         {
             // Arrange
             var createDto = CreateTestDocumentCreateDTO();
             _mockDocumentService.Setup(s => s.CreateDocumentAsync(It.IsAny<DocumentCreateDTO>()))
                               .ThrowsAsync(new System.Exception("Database error"));
 
-            // Act
-            var result = await _controller.CreateDocument(createDto);
-
-            // Assert
+            // Act & Assert
             await Assert.ThrowsAsync<System.Exception>(() => _controller.CreateDocument(createDto));
         }
 
@@ -322,7 +322,7 @@ namespace Litigator.Tests.Controllers
                               .ThrowsAsync(new System.Exception("Database error"));
 
             // Act & Assert - This test will need to be updated based on your controller's actual exception handling
-            // Currently your controller doesn't have try-catch blocks, so exceptions will bubble up
+            // Currently the actual Document controller doesn't have try-catch blocks, so exceptions will bubble up
             await Assert.ThrowsAsync<System.Exception>(() => _controller.UpdateDocument(1, updateDto));
         }
 
