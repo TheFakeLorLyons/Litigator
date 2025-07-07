@@ -1,7 +1,7 @@
 using Litigator.DataAccess.Enums;
 using Litigator.Models.DTOs.Shared;
 
-namespace Litigator.Models.DTOs.Judge
+namespace Litigator.Models.DTOs.ClassDTOs
 {
     public class JudgeDTO
     {

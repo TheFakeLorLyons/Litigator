@@ -1,7 +1,7 @@
 using AutoMapper;
 using Litigator.DataAccess.Data;
 using Litigator.DataAccess.Entities;
-using Litigator.Models.DTOs.Judge;
+using Litigator.Models.DTOs.ClassDTOs;
 using Litigator.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;

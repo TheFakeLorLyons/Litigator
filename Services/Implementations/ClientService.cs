@@ -3,6 +3,7 @@ using Litigator.DataAccess.Data;
 using Litigator.DataAccess.Entities;
 using Litigator.Models.DTOs.ClassDTOs;
 using Litigator.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace Litigator.Services.Implementations
 {
@@ -101,6 +102,12 @@ namespace Litigator.Services.Implementations
 
         public async Task<ClientDetailDTO> UpdateClientAsync(ClientDetailDTO clientDto)
         {
+            // Validate that ClientId is provided
+            if (clientDto.ClientId <= 0)
+            {
+                throw new ArgumentException("ClientId must be provided and greater than 0.", nameof(clientDto));
+            }
+
             var existingClient = await _context.Clients.FindAsync(clientDto.ClientId);
             if (existingClient == null)
             {

@@ -3,6 +3,7 @@ using Litigator.DataAccess.Data;
 using Litigator.DataAccess.Entities;
 using Litigator.Models.DTOs.ClassDTOs;
 using Litigator.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace Litigator.Services.Implementations
 {

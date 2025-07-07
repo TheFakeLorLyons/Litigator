@@ -1,19 +1,20 @@
 using Litigator.DataAccess.Data;
 using Litigator.Models.DTOs.Analytics;
 using Litigator.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace Litigator.Services.Implementations
 {
     public class AnalyticsService : IAnalyticsService
     {
-        private readonly LitigatorDbContext _context; // Changed from ApplicationDbContext
+        private readonly LitigatorDbContext _context;
 
-        public AnalyticsService(LitigatorDbContext context) // Changed from ApplicationDbContext
+        public AnalyticsService(LitigatorDbContext context)
         {
             _context = context;
         }
 
-        public async Task<IEnumerable<AttorneyPerformanceDTO>> GetAttorneyPerformanceAsync() // Changed return type
+        public async Task<IEnumerable<AttorneyPerformanceDTO>> GetAttorneyPerformanceAsync()
         {
             var attorneys = await _context.Attorneys
                 .Where(a => a.IsActive)
@@ -32,8 +33,8 @@ namespace Litigator.Services.Implementations
                         Attorney = a,
                         TotalRevenue = attorneyCases.Sum(c => c.EstimatedValue ?? 0),
                         AvgCaseValue = attorneyCases.Any() ? attorneyCases.Average(c => c.EstimatedValue ?? 0) : 0,
-                        CompletedCases = closedCases.Count, // Fixed: using closedCases here
-                        ActiveCases = activeCases.Count,    // Fixed: using activeCases here
+                        CompletedCases = closedCases.Count,
+                        ActiveCases = activeCases.Count,
                         TotalCases = attorneyCases.Count,
                         OverdueDeadlines = attorneyCases
                             .SelectMany(c => c.Deadlines)
@@ -61,7 +62,7 @@ namespace Litigator.Services.Implementations
             return result;
         }
 
-        public async Task<IEnumerable<CaseOutcomePredictionDTO>> GetCaseOutcomePredictionsAsync() // Changed return type
+        public async Task<IEnumerable<CaseOutcomePredictionDTO>> GetCaseOutcomePredictionsAsync()
         {
             var activeCases = await _context.Cases
                 .Where(c => c.Status == "Open" || c.Status == "Active")
@@ -107,7 +108,7 @@ namespace Litigator.Services.Implementations
             return result;
         }
 
-        public async Task<IEnumerable<CriticalCaseDTO>> GetCriticalCasesAsync() // Changed return type
+        public async Task<IEnumerable<CriticalCaseDTO>> GetCriticalCasesAsync()
         {
             var criticalCases = await _context.Cases
                 .Where(c => c.Status == "Open" || c.Status == "Active")
@@ -158,7 +159,7 @@ namespace Litigator.Services.Implementations
             return result;
         }
 
-        public async Task<IEnumerable<MonthlyTrendDTO>> GetMonthlyTrendsAsync() // Changed return type
+        public async Task<IEnumerable<MonthlyTrendDTO>> GetMonthlyTrendsAsync()
         {
             var monthlyData = await _context.Cases
                 .GroupBy(c => new { c.FilingDate.Year, c.FilingDate.Month })
@@ -185,7 +186,7 @@ namespace Litigator.Services.Implementations
             return result;
         }
 
-        public async Task<IEnumerable<DeadlinePerformanceDTO>> GetDeadlinePerformanceAsync() // Changed return type
+        public async Task<IEnumerable<DeadlinePerformanceDTO>> GetDeadlinePerformanceAsync()
         {
             var deadlineData = await _context.Deadlines
                 .Include(d => d.Case)

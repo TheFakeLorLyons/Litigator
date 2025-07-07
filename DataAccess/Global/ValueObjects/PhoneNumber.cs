@@ -1,5 +1,9 @@
 using System;
 using System.Text.RegularExpressions;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 
 namespace Litigator.DataAccess.ValueObjects
 {
@@ -63,12 +67,15 @@ namespace Litigator.DataAccess.ValueObjects
         private string FormatNumber()
         {
             if (string.IsNullOrWhiteSpace(Number)) return string.Empty;
+
             var digits = Regex.Replace(Number, @"\D", "");
+
             return digits.Length switch
             {
-                10 => $"({digits[..3]}) {digits[3..6]}-{digits[6..10]}",
-                11 when digits.StartsWith("1") => $"+1 ({digits[1..4]}) {digits[4..7]}-{digits[7..11]}",
-                _ => Number
+                7 => $"{digits[..3]}-{digits[3..7]}", // 7 digits: 555-0123
+                10 => $"({digits[..3]}) {digits[3..6]}-{digits[6..10]}", // 10 digits: (555) 555-0123
+                11 when digits.StartsWith("1") => $"+1 ({digits[1..4]}) {digits[4..7]}-{digits[7..11]}", // 11 digits with country code
+                _ => Number // Return as-is if doesn't match expected patterns
             };
         }
 

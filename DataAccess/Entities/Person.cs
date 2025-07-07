@@ -1,4 +1,8 @@
 using Litigator.DataAccess.ValueObjects;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 
 namespace Litigator.DataAccess.Entities
 {

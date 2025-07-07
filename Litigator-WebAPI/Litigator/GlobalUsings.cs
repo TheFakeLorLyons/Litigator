@@ -1,0 +1,11 @@
+global using Microsoft.Extensions.Logging;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.EntityFrameworkCore;
+global using System;
+global using System.Collections.Generic;
+global using System.ComponentModel.DataAnnotations;
+global using System.ComponentModel.DataAnnotations.Schema;
+global using System.Linq;
+global using System.Text.RegularExpressions;
+global using System.Threading.Tasks;
+global using System.Text.Json.Serialization;

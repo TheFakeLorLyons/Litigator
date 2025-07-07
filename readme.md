@@ -40,11 +40,17 @@ It demonstrates a full-stack web application using ASP.NET Core, Entity Framewor
 1. **Clone the repo:**
    ```bash
    git clone https://github.com/yourname/litigator.git
-   cd litigator
+   ```
+2. **Run the Web API — Swagger UI will be available at http://localhost:5000/swagger**
+   ```bash
+   cd Litigator/
+   cd Litigator-WebAPI/
+   cd Litigator/
+   dotnet run
    ```
 
 ### 🧪 Running Tests
-- `dotnet test`
+- `dotnet test` or `dotnet test ../Tests/Tests.csproj` based on which directory you are in.
 - Tests live in /Tests, separated by service and controller concerns using xUnit.
 
 ### 📁 Project Structure

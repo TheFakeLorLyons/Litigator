@@ -1,11 +1,13 @@
 using Moq;
 using Xunit;
 using Litigator.Controllers;
-using Litigator.Services.Interfaces;
 using Litigator.DataAccess.Entities;
+using Litigator.DataAccess.ValueObjects;
 using Litigator.Models.DTOs.ClassDTOs;
 using Litigator.Models.DTOs.Shared;
-using Litigator.DataAccess.ValueObjects;
+using Litigator.Services.Interfaces;
+using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Tests.Controllers
 {
@@ -167,14 +169,24 @@ namespace Tests.Controllers
         }
 
         [Fact]
-        public async Task SearchClients_WithEmptySearchTerm_ReturnsBadRequest()
+        public async Task SearchClients_WithEmptySearchTerm_ReturnsAllClients()
         {
+            // Arrange
+            var allClients = new List<ClientDTO>
+            {
+                CreateTestClientDTO(1, "John", "Doe"),
+                CreateTestClientDTO(2, "Jane", "Smith")
+            };
+            _mockClientService.Setup(s => s.SearchClientsAsync("")).ReturnsAsync(allClients);
+
             // Act
             var result = await _controller.SearchClients("");
 
             // Assert
-            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
-            Assert.Equal("Search term is required.", badRequestResult.Value);
+            var actionResult = Assert.IsType<ActionResult<IEnumerable<ClientDTO>>>(result);
+            var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+            var returnedClients = Assert.IsAssignableFrom<IEnumerable<ClientDTO>>(okResult.Value);
+            Assert.Equal(2, returnedClients.Count());
         }
 
         [Fact]

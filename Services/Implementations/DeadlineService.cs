@@ -1,12 +1,12 @@
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using AutoMapper;
 using Litigator.DataAccess.Data;
 using Litigator.DataAccess.Entities;
-using Litigator.Models.DTOs.Deadline;
+using Litigator.Models.DTOs.ClassDTOs;
 using Litigator.Models.Mapping;
 using Litigator.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Litigator.Services.Implementations
 {

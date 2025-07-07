@@ -3,6 +3,10 @@ using Litigator.DataAccess.Data;
 using Litigator.DataAccess.Entities;
 using Litigator.DataAccess.ValueObjects;
 using System.CodeDom;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 
 namespace Litigator.DataAccess.Data
 {
@@ -68,7 +72,7 @@ namespace Litigator.DataAccess.Data
             var addressFaker = FakerFactory.CreateAddressFaker();
             var phoneFaker = FakerFactory.CreatePhoneFaker();
             var personNameFaker = FakerFactory.CreatePersonNameFaker();
-            //Seed Judges first
+            // Seed Judges first
             if (!context.Judges.Any())
             {
                 var judges = new[]
@@ -306,7 +310,7 @@ namespace Litigator.DataAccess.Data
             var legalProfessionals = attorneys.Cast<LegalProfessional>().ToList();
             legalProfessionals.AddRange(judges);
 
-            // Assign attorneys to clients - FIXED VERSION
+            // Assign attorneys to clients
             foreach (var client in clients)
             {
                 // Skip if client already has attorneys assigned
@@ -331,7 +335,7 @@ namespace Litigator.DataAccess.Data
                 }
             }
 
-            // Assign legal professionals to courts - FIXED VERSION
+            // Assign legal professionals to courts
             foreach (var court in courts)
             {
                 // Skip if court already has legal professionals assigned

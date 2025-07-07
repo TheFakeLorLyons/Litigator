@@ -1,3 +1,8 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
+
 namespace Litigator.Models.DTOs.ClassDTOs
 {
     public class CaseDTO
@@ -56,5 +61,59 @@ namespace Litigator.Models.DTOs.ClassDTOs
         // Next deadline information
         public DateTime? NextDeadlineDate { get; set; }
         public string? NextDeadlineDescription { get; set; }
+    }
+
+    public class CaseCreateDTO
+    {
+        [Required, MaxLength(50)]
+        public required string CaseNumber { get; set; }
+        
+        [Required, MaxLength(200)]
+        public required string CaseTitle { get; set; }
+        
+        [MaxLength(50)]
+        public required string CaseType { get; set; } // Civil, Criminal, Family, etc.
+        
+        public DateTime FilingDate { get; set; }
+        
+        [MaxLength(20)]
+        public string Status { get; set; } = "Active"; // Active, Closed, Pending
+        
+        public decimal? EstimatedValue { get; set; }
+        
+        public decimal? CurrentRealCost { get; set; }
+        
+        // Foreign Keys
+        public int ClientId { get; set; }
+        public int AssignedAttorneyId { get; set; }
+        public int AssignedJudgeId { get; set; }
+        public int CourtId { get; set; }
+    }
+
+    public class CaseUpdateDTO
+    {
+        [Required, MaxLength(50)]
+        public required string CaseNumber { get; set; }
+        
+        [Required, MaxLength(200)]
+        public required string CaseTitle { get; set; }
+        
+        [MaxLength(50)]
+        public required string CaseType { get; set; }
+        
+        public DateTime FilingDate { get; set; }
+        
+        [MaxLength(20)]
+        public required string Status { get; set; }
+        
+        public decimal? EstimatedValue { get; set; }
+        
+        public decimal? CurrentRealCost { get; set; }
+        
+        // Foreign Keys
+        public int ClientId { get; set; }
+        public int AssignedAttorneyId { get; set; }
+        public int AssignedJudgeId { get; set; }
+        public int CourtId { get; set; }
     }
 }

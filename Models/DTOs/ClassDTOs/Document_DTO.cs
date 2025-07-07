@@ -1,4 +1,4 @@
-namespace Litigator.Models.DTOs.Document
+namespace Litigator.Models.DTOs.ClassDTOs
 {
     public class DocumentDTO
     {
@@ -6,6 +6,7 @@ namespace Litigator.Models.DTOs.Document
         public required string DocumentName { get; set; }
         public required string DocumentType { get; set; }
         public required string FilePath { get; set; }
+        public string? Description { get; set; }
         public DateTime UploadDate { get; set; }
         public long FileSize { get; set; }
         public string? UploadedBy { get; set; }
@@ -19,6 +20,7 @@ namespace Litigator.Models.DTOs.Document
         public required string DocumentName { get; set; }
         public required string DocumentType { get; set; }
         public required string FilePath { get; set; }
+        public string? Description { get; set; }
         public long FileSize { get; set; }
         public string? UploadedBy { get; set; }
         public int CaseId { get; set; }
@@ -28,6 +30,7 @@ namespace Litigator.Models.DTOs.Document
     {
         public required string DocumentName { get; set; }
         public required string DocumentType { get; set; }
+        public string? Description { get; set; }
         public string? UploadedBy { get; set; }
     }
 }

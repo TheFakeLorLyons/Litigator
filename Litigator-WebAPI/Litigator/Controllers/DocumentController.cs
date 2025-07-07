@@ -1,4 +1,8 @@
-using Litigator.Models.DTOs.ClassDTOs;
+using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Litigator.DataAccess.Entities;
+using Litigator.Models.DTOs.ClassDTOs;  
 using Litigator.Services.Interfaces;
 
 namespace Litigator.Controllers
@@ -42,7 +46,6 @@ namespace Litigator.Controllers
         {
             if (string.IsNullOrWhiteSpace(searchTerm))
                 return BadRequest("Search term is required.");
-
             var documents = await _documentService.SearchDocumentsAsync(searchTerm);
             return Ok(documents);
         }

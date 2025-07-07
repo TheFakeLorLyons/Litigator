@@ -1,27 +1,33 @@
+using AutoMapper;
 using Litigator.DataAccess.Data;
 using Litigator.DataAccess.Entities;
 using Litigator.Models.DTOs.ClassDTOs;
 using Litigator.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace Litigator.Services.Implementations
 {
     public class CaseService : ICaseService
     {
         private readonly LitigatorDbContext _context;
+        private readonly IMapper _mapper;
 
-        public CaseService(LitigatorDbContext context)
+        public CaseService(LitigatorDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
-        public async Task<IEnumerable<CaseDTO>> GetAllCasesAsync()
+        public async Task<IEnumerable<CaseDetailDTO>> GetAllCasesAsync()
         {
             return await _context.Cases
+                .AsNoTracking()
                 .Include(c => c.Client)
                 .Include(c => c.AssignedAttorney)
                 .Include(c => c.Court)
                 .Include(c => c.Deadlines)
-                .Select(c => new CaseDTO
+                .Include(c => c.Documents)
+                .Select(c => new CaseDetailDTO
                 {
                     CaseId = c.CaseId,
                     CaseNumber = c.CaseNumber,
@@ -30,12 +36,32 @@ namespace Litigator.Services.Implementations
                     FilingDate = c.FilingDate,
                     Status = c.Status,
                     EstimatedValue = c.EstimatedValue,
-                    ClientFirstName = c.Client != null ? c.Client.Name.First : string.Empty,
-                    ClientLastName = c.Client != null ? c.Client.Name.Last ?? string.Empty : string.Empty,
-                    AttorneyFirstName = c.AssignedAttorney != null ? $"{c.AssignedAttorney.Name.First}" : null,
-                    AttorneyLastName = c.AssignedAttorney != null ? $"{c.AssignedAttorney.Name.Last}" : null,
+                    ClientId = c.ClientId,
+                    ClientFirstName = c.Client != null ? c.Client.Name.First : "Unknown",
+                    ClientLastName = c.Client != null ? c.Client.Name.Last : "Unknown",
+                    ClientEmail = c.Client != null ? c.Client.Email : null,
+                    ClientPhone = c.Client != null && c.Client.PrimaryPhone != null ? c.Client.PrimaryPhone.Display : null,
+                    AssignedAttorneyId = c.AssignedAttorneyId,
+                    AttorneyFirstName = c.AssignedAttorney != null ? c.AssignedAttorney.Name.First : null,
+                    AttorneyLastName = c.AssignedAttorney != null ? c.AssignedAttorney.Name.Last : null,
+                    AttorneyEmail = c.AssignedAttorney != null ? c.AssignedAttorney.Email : null,
+                    CourtId = c.CourtId,
                     CourtName = c.Court != null ? c.Court.CourtName : null,
-                    OpenDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                    CourtAddress = c.Court != null && c.Court.Address != null ? c.Court.Address.ToString() : null,
+                    TotalDeadlines = c.Deadlines.Count(),
+                    OpenDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now),
+                    OverdueDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate < DateTime.Now),
+                    TotalDocuments = c.Documents.Count(),
+                    NextDeadlineDate = c.Deadlines
+                        .Where(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                        .OrderBy(d => d.DeadlineDate)
+                        .Select(d => d.DeadlineDate)
+                        .FirstOrDefault(),
+                    NextDeadlineDescription = c.Deadlines
+                        .Where(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                        .OrderBy(d => d.DeadlineDate)
+                        .Select(d => d.Description)
+                        .FirstOrDefault()
                 })
                 .OrderByDescending(c => c.FilingDate)
                 .ToListAsync();
@@ -44,6 +70,7 @@ namespace Litigator.Services.Implementations
         public async Task<CaseDetailDTO?> GetCaseByIdAsync(int id)
         {
             return await _context.Cases
+                .AsNoTracking()
                 .Include(c => c.Client)
                 .Include(c => c.AssignedAttorney)
                 .Include(c => c.Court)
@@ -92,6 +119,7 @@ namespace Litigator.Services.Implementations
         public async Task<CaseDetailDTO?> GetCaseByNumberAsync(string caseNumber)
         {
             return await _context.Cases
+                .AsNoTracking()
                 .Include(c => c.Client)
                 .Include(c => c.AssignedAttorney)
                 .Include(c => c.Court)
@@ -137,15 +165,17 @@ namespace Litigator.Services.Implementations
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<CaseDTO>> GetCasesByClientAsync(int clientId)
+        public async Task<IEnumerable<CaseDetailDTO>> GetCasesByClientAsync(int clientId)
         {
             return await _context.Cases
+                .AsNoTracking()
                 .Include(c => c.Client)
                 .Include(c => c.AssignedAttorney)
                 .Include(c => c.Court)
                 .Include(c => c.Deadlines)
+                .Include(c => c.Documents)
                 .Where(c => c.ClientId == clientId)
-                .Select(c => new CaseDTO
+                .Select(c => new CaseDetailDTO
                 {
                     CaseId = c.CaseId,
                     CaseNumber = c.CaseNumber,
@@ -154,26 +184,48 @@ namespace Litigator.Services.Implementations
                     FilingDate = c.FilingDate,
                     Status = c.Status,
                     EstimatedValue = c.EstimatedValue,
+                    ClientId = c.ClientId,
                     ClientFirstName = c.Client != null ? c.Client.Name.First : "Unknown",
                     ClientLastName = c.Client != null ? c.Client.Name.Last : "Unknown",
+                    ClientEmail = c.Client != null ? c.Client.Email : null,
+                    ClientPhone = c.Client != null && c.Client.PrimaryPhone != null ? c.Client.PrimaryPhone.Display : null,
+                    AssignedAttorneyId = c.AssignedAttorneyId,
                     AttorneyFirstName = c.AssignedAttorney != null ? c.AssignedAttorney.Name.First : null,
                     AttorneyLastName = c.AssignedAttorney != null ? c.AssignedAttorney.Name.Last : null,
+                    AttorneyEmail = c.AssignedAttorney != null ? c.AssignedAttorney.Email : null,
+                    CourtId = c.CourtId,
                     CourtName = c.Court != null ? c.Court.CourtName : null,
-                    OpenDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                    CourtAddress = c.Court != null && c.Court.Address != null ? c.Court.Address.ToString() : null,
+                    TotalDeadlines = c.Deadlines.Count(),
+                    OpenDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now),
+                    OverdueDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate < DateTime.Now),
+                    TotalDocuments = c.Documents.Count(),
+                    NextDeadlineDate = c.Deadlines
+                        .Where(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                        .OrderBy(d => d.DeadlineDate)
+                        .Select(d => d.DeadlineDate)
+                        .FirstOrDefault(),
+                    NextDeadlineDescription = c.Deadlines
+                        .Where(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                        .OrderBy(d => d.DeadlineDate)
+                        .Select(d => d.Description)
+                        .FirstOrDefault()
                 })
                 .OrderByDescending(c => c.FilingDate)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<CaseDTO>> GetCasesByAttorneyAsync(int attorneyId)
+        public async Task<IEnumerable<CaseDetailDTO>> GetCasesByAttorneyAsync(int attorneyId)
         {
             return await _context.Cases
+                .AsNoTracking()
                 .Include(c => c.Client)
                 .Include(c => c.AssignedAttorney)
                 .Include(c => c.Court)
                 .Include(c => c.Deadlines)
+                .Include(c => c.Documents)
                 .Where(c => c.AssignedAttorneyId == attorneyId)
-                .Select(c => new CaseDTO
+                .Select(c => new CaseDetailDTO
                 {
                     CaseId = c.CaseId,
                     CaseNumber = c.CaseNumber,
@@ -182,26 +234,48 @@ namespace Litigator.Services.Implementations
                     FilingDate = c.FilingDate,
                     Status = c.Status,
                     EstimatedValue = c.EstimatedValue,
+                    ClientId = c.ClientId,
                     ClientFirstName = c.Client != null ? c.Client.Name.First : "Unknown",
                     ClientLastName = c.Client != null ? c.Client.Name.Last : "Unknown",
+                    ClientEmail = c.Client != null ? c.Client.Email : null,
+                    ClientPhone = c.Client != null && c.Client.PrimaryPhone != null ? c.Client.PrimaryPhone.Display : null,
+                    AssignedAttorneyId = c.AssignedAttorneyId,
                     AttorneyFirstName = c.AssignedAttorney != null ? c.AssignedAttorney.Name.First : null,
                     AttorneyLastName = c.AssignedAttorney != null ? c.AssignedAttorney.Name.Last : null,
+                    AttorneyEmail = c.AssignedAttorney != null ? c.AssignedAttorney.Email : null,
+                    CourtId = c.CourtId,
                     CourtName = c.Court != null ? c.Court.CourtName : null,
-                    OpenDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                    CourtAddress = c.Court != null && c.Court.Address != null ? c.Court.Address.ToString() : null,
+                    TotalDeadlines = c.Deadlines.Count(),
+                    OpenDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now),
+                    OverdueDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate < DateTime.Now),
+                    TotalDocuments = c.Documents.Count(),
+                    NextDeadlineDate = c.Deadlines
+                        .Where(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                        .OrderBy(d => d.DeadlineDate)
+                        .Select(d => d.DeadlineDate)
+                        .FirstOrDefault(),
+                    NextDeadlineDescription = c.Deadlines
+                        .Where(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                        .OrderBy(d => d.DeadlineDate)
+                        .Select(d => d.Description)
+                        .FirstOrDefault()
                 })
                 .OrderByDescending(c => c.FilingDate)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<CaseDTO>> GetActiveCasesAsync()
+        public async Task<IEnumerable<CaseDetailDTO>> GetActiveCasesAsync()
         {
             return await _context.Cases
+                .AsNoTracking()
                 .Include(c => c.Client)
                 .Include(c => c.AssignedAttorney)
                 .Include(c => c.Court)
                 .Include(c => c.Deadlines)
+                .Include(c => c.Documents)
                 .Where(c => c.Status == "Active")
-                .Select(c => new CaseDTO
+                .Select(c => new CaseDetailDTO
                 {
                     CaseId = c.CaseId,
                     CaseNumber = c.CaseNumber,
@@ -210,32 +284,54 @@ namespace Litigator.Services.Implementations
                     FilingDate = c.FilingDate,
                     Status = c.Status,
                     EstimatedValue = c.EstimatedValue,
+                    ClientId = c.ClientId,
                     ClientFirstName = c.Client != null ? c.Client.Name.First : "Unknown",
                     ClientLastName = c.Client != null ? c.Client.Name.Last : "Unknown",
+                    ClientEmail = c.Client != null ? c.Client.Email : null,
+                    ClientPhone = c.Client != null && c.Client.PrimaryPhone != null ? c.Client.PrimaryPhone.Display : null,
+                    AssignedAttorneyId = c.AssignedAttorneyId,
                     AttorneyFirstName = c.AssignedAttorney != null ? c.AssignedAttorney.Name.First : null,
                     AttorneyLastName = c.AssignedAttorney != null ? c.AssignedAttorney.Name.Last : null,
+                    AttorneyEmail = c.AssignedAttorney != null ? c.AssignedAttorney.Email : null,
+                    CourtId = c.CourtId,
                     CourtName = c.Court != null ? c.Court.CourtName : null,
-                    OpenDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                    CourtAddress = c.Court != null && c.Court.Address != null ? c.Court.Address.ToString() : null,
+                    TotalDeadlines = c.Deadlines.Count(),
+                    OpenDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now),
+                    OverdueDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate < DateTime.Now),
+                    TotalDocuments = c.Documents.Count(),
+                    NextDeadlineDate = c.Deadlines
+                        .Where(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                        .OrderBy(d => d.DeadlineDate)
+                        .Select(d => d.DeadlineDate)
+                        .FirstOrDefault(),
+                    NextDeadlineDescription = c.Deadlines
+                        .Where(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                        .OrderBy(d => d.DeadlineDate)
+                        .Select(d => d.Description)
+                        .FirstOrDefault()
                 })
                 .OrderByDescending(c => c.FilingDate)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<CaseDTO>> SearchCasesAsync(string searchTerm)
+        public async Task<IEnumerable<CaseDetailDTO>> SearchCasesAsync(string searchTerm)
         {
             var term = searchTerm.ToLower();
             return await _context.Cases
+                .AsNoTracking()
                 .Include(c => c.Client)
                 .Include(c => c.AssignedAttorney)
                 .Include(c => c.Court)
                 .Include(c => c.Deadlines)
+                .Include(c => c.Documents)
                 .Where(c =>
                     c.CaseNumber.ToLower().Contains(term) ||
                     c.CaseTitle.ToLower().Contains(term) ||
                     (c.Client != null && c.Client.Name.First.ToLower().Contains(term)) ||
                     (c.AssignedAttorney != null &&
                      (c.AssignedAttorney.Name.First + " " + c.AssignedAttorney.Name.Last).ToLower().Contains(term)))
-                .Select(c => new CaseDTO
+                .Select(c => new CaseDetailDTO
                 {
                     CaseId = c.CaseId,
                     CaseNumber = c.CaseNumber,
@@ -244,61 +340,95 @@ namespace Litigator.Services.Implementations
                     FilingDate = c.FilingDate,
                     Status = c.Status,
                     EstimatedValue = c.EstimatedValue,
+                    ClientId = c.ClientId,
                     ClientFirstName = c.Client != null ? c.Client.Name.First : "Unknown",
                     ClientLastName = c.Client != null ? c.Client.Name.Last : "Unknown",
+                    ClientEmail = c.Client != null ? c.Client.Email : null,
+                    ClientPhone = c.Client != null && c.Client.PrimaryPhone != null ? c.Client.PrimaryPhone.Display : null,
+                    AssignedAttorneyId = c.AssignedAttorneyId,
                     AttorneyFirstName = c.AssignedAttorney != null ? c.AssignedAttorney.Name.First : null,
                     AttorneyLastName = c.AssignedAttorney != null ? c.AssignedAttorney.Name.Last : null,
+                    AttorneyEmail = c.AssignedAttorney != null ? c.AssignedAttorney.Email : null,
+                    CourtId = c.CourtId,
                     CourtName = c.Court != null ? c.Court.CourtName : null,
-                    OpenDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                    CourtAddress = c.Court != null && c.Court.Address != null ? c.Court.Address.ToString() : null,
+                    TotalDeadlines = c.Deadlines.Count(),
+                    OpenDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now),
+                    OverdueDeadlines = c.Deadlines.Count(d => !d.IsCompleted && d.DeadlineDate < DateTime.Now),
+                    TotalDocuments = c.Documents.Count(),
+                    NextDeadlineDate = c.Deadlines
+                        .Where(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                        .OrderBy(d => d.DeadlineDate)
+                        .Select(d => d.DeadlineDate)
+                        .FirstOrDefault(),
+                    NextDeadlineDescription = c.Deadlines
+                        .Where(d => !d.IsCompleted && d.DeadlineDate >= DateTime.Now)
+                        .OrderBy(d => d.DeadlineDate)
+                        .Select(d => d.Description)
+                        .FirstOrDefault()
                 })
                 .OrderByDescending(c => c.FilingDate)
                 .ToListAsync();
         }
 
-        public async Task<CaseDetailDTO> CreateCaseAsync(Case case_)
+        public async Task<CaseDetailDTO> CreateCaseAsync(CaseCreateDTO caseCreateDto)
         {
-            // Validate that the case number is unique
-            var existingCase = await _context.Cases.FirstOrDefaultAsync(c => c.CaseNumber == case_.CaseNumber);
+            // Check if case number already exists
+            var existingCase = await _context.Cases
+                .FirstOrDefaultAsync(c => c.CaseNumber == caseCreateDto.CaseNumber);
+
             if (existingCase != null)
-            {
-                throw new InvalidOperationException($"Case number {case_.CaseNumber} already exists.");
-            }
+                throw new InvalidOperationException($"Case number {caseCreateDto.CaseNumber} already exists.");
 
-            // Validate foreign key references
-            await ValidateForeignKeysAsync(case_);
+            // Map DTO to entity
+            var caseEntity = _mapper.Map<Case>(caseCreateDto);
 
-            _context.Cases.Add(case_);
+            // Add to context
+            _context.Cases.Add(caseEntity);
             await _context.SaveChangesAsync();
 
-            var result = await GetCaseByIdAsync(case_.CaseId);
-            return result ?? throw new InvalidOperationException("Failed to retrieve created case.");
+            // Load related entities for mapping
+            var createdCase = await _context.Cases
+                .Include(c => c.Client)
+                .Include(c => c.AssignedAttorney)
+                .Include(c => c.Court)
+                .Include(c => c.Deadlines)
+                .Include(c => c.Documents)
+                .FirstOrDefaultAsync(c => c.CaseId == caseEntity.CaseId);
+
+            // Map back to DTO
+            return _mapper.Map<CaseDetailDTO>(createdCase);
         }
 
-        public async Task<CaseDetailDTO> UpdateCaseAsync(Case case_)
+        public async Task<CaseDetailDTO> UpdateCaseAsync(int caseId, CaseUpdateDTO caseUpdateDto)
         {
-            var existingCase = await _context.Cases.FindAsync(case_.CaseId);
+            var existingCase = await _context.Cases.FindAsync(caseId);
             if (existingCase == null)
-            {
-                throw new InvalidOperationException($"Case with ID {case_.CaseId} not found.");
-            }
+                throw new InvalidOperationException($"Case with ID {caseId} not found.");
 
-            // Check if case number is being changed and if it's unique
-            if (existingCase.CaseNumber != case_.CaseNumber)
-            {
-                var duplicateCase = await _context.Cases.FirstOrDefaultAsync(c => c.CaseNumber == case_.CaseNumber);
-                if (duplicateCase != null)
-                {
-                    throw new InvalidOperationException($"Case number {case_.CaseNumber} already exists.");
-                }
-            }
+            // Check if case number already exists for a different case
+            var duplicateCase = await _context.Cases
+                .FirstOrDefaultAsync(c => c.CaseNumber == caseUpdateDto.CaseNumber && c.CaseId != caseId);
 
-            await ValidateForeignKeysAsync(case_);
+            if (duplicateCase != null)
+                throw new InvalidOperationException($"Case number {caseUpdateDto.CaseNumber} already exists.");
 
-            _context.Entry(existingCase).CurrentValues.SetValues(case_);
+            // Map DTO to existing entity
+            _mapper.Map(caseUpdateDto, existingCase);
+
             await _context.SaveChangesAsync();
 
-            var result = await GetCaseByIdAsync(case_.CaseId);
-            return result ?? throw new InvalidOperationException("Failed to retrieve updated case.");
+            // Load related entities for mapping
+            var updatedCase = await _context.Cases
+                .Include(c => c.Client)
+                .Include(c => c.AssignedAttorney)
+                .Include(c => c.Court)
+                .Include(c => c.Deadlines)
+                .Include(c => c.Documents)
+                .FirstOrDefaultAsync(c => c.CaseId == caseId);
+
+            // Map back to DTO
+            return _mapper.Map<CaseDetailDTO>(updatedCase);
         }
 
         public async Task<bool> DeleteCaseAsync(int id)

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Litigator.DataAccess.Entities;
-using Litigator.Models.DTOs.Deadline;
+using Litigator.Models.DTOs.ClassDTOs;
 
 namespace Litigator.Services.Interfaces
 {

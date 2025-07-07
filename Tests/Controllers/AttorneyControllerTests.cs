@@ -1,12 +1,14 @@
 using Moq;
 using Xunit;
 using Litigator.Controllers;
-using Litigator.Services.Interfaces;
 using Litigator.DataAccess.Entities;
-using Litigator.Models.DTOs.ClassDTOs;
 using Litigator.DataAccess.Enums;
-using Litigator.Models.DTOs.Shared;
 using Litigator.DataAccess.ValueObjects;
+using Litigator.Models.DTOs.ClassDTOs;
+using Litigator.Models.DTOs.Shared;
+using Litigator.Services.Interfaces;
+using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Litigator.Tests.Controllers
 {
@@ -25,7 +27,7 @@ namespace Litigator.Tests.Controllers
 
         // Helper method to create a test attorney entity (for internal use)
         private Attorney CreateTestAttorney(int id = 1, string firstName = "John", string lastName = "Doe",
-            string barNumber = "12345", string email = "john.doe@law.com", string phoneNumber = "555-0123")
+            string barNumber = "12345", string email = "john.doe@law.com", string phoneNumber = "5555550123")
         {
             return new Attorney
             {
@@ -33,12 +35,13 @@ namespace Litigator.Tests.Controllers
                 Name = new PersonName { First = firstName, Last = lastName },
                 BarNumber = barNumber,
                 Email = email,
-                PrimaryPhone = new PhoneNumber { Number = phoneNumber },
+                PrimaryPhone = new PhoneNumber { Number = phoneNumber }, // This will format to (555) 555-0123
                 PrimaryAddress = Address.Create("456 Lawyer St", "Law City", "NY", "10001"),
                 Specialization = LegalSpecialization.GeneralPractice,
                 IsActive = true
             };
         }
+
 
         // Helper method to create a test attorney DTO
         private AttorneyDTO CreateTestAttorneyDTO(int id = 1, string name = "John Doe",
@@ -308,14 +311,14 @@ namespace Litigator.Tests.Controllers
         public void Attorney_PropertiesAccessible_ThroughValueObjects()
         {
             // Arrange & Act
-            var attorney = CreateTestAttorney(1, "John", "Doe", "12345", "john.doe@law.com", "555-0123");
+            var attorney = CreateTestAttorney(1, "John", "Doe", "12345", "john.doe@law.com", "5555550123");
 
             // Assert - Test that we can access the nested properties correctly
             Assert.Equal("John", attorney.Name.First);
             Assert.Equal("Doe", attorney.Name.Last);
             Assert.Equal("John Doe", attorney.Name.Display);
-            Assert.Equal("555-0123", attorney.PrimaryPhone?.Number);
-            Assert.Equal("(555) 555-0123", attorney.PrimaryPhone?.Formatted);
+            Assert.Equal("5555550123", attorney.PrimaryPhone?.Number); // Updated assertion
+            Assert.Equal("(555) 555-0123", attorney.PrimaryPhone?.Formatted); // This should now match
             Assert.Equal("12345", attorney.BarNumber);
             Assert.Equal("john.doe@law.com", attorney.Email);
             Assert.True(attorney.IsActive);

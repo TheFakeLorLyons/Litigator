@@ -1,5 +1,5 @@
 using Litigator.DataAccess.Entities;
-using Litigator.Models.DTOs.Judge;
+using Litigator.Models.DTOs.ClassDTOs;
 
 namespace Litigator.Services.Interfaces
 {

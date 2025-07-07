@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Litigator.Controllers;
 using Litigator.DataAccess.ValueObjects;
-using Litigator.Models.DTOs.Judge;
+using Litigator.Models.DTOs.ClassDTOs;
 using Litigator.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;

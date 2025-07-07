@@ -1,4 +1,4 @@
-namespace Litigator.Models.DTOs.Deadline
+namespace Litigator.Models.DTOs.ClassDTOs
 {
     public class DeadlineDTO
     {
@@ -25,6 +25,7 @@ namespace Litigator.Models.DTOs.Deadline
 
     public class DeadlineUpdateDTO
     {
+        public int? DeadlineId { get; set; }
         public required string DeadlineType { get; set; }
         public string? Description { get; set; }
         public DateTime DeadlineDate { get; set; }

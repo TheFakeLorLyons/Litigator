@@ -2,8 +2,10 @@ using Moq;
 using Xunit;
 using Litigator.Controllers;
 using Litigator.DataAccess.Entities;
-using Litigator.Models.DTOs.Deadline;
+using Litigator.Models.DTOs.ClassDTOs;
 using Litigator.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Litigator.Tests.Controllers
 {
@@ -182,7 +184,7 @@ namespace Litigator.Tests.Controllers
             Assert.IsType<BadRequestObjectResult>(result.Result);
         }
 
-        private DeadlineDTO CreateTestDeadlineDTO(int id = 1, string type = "Motion Filing", int caseId = 1)
+        private DeadlineDTO CreateTestDeadlineDTO(int id = 1, string type = "Motion Filing", int caseId = 1, bool isCritical = false)
         {
             return new DeadlineDTO
             {
@@ -192,7 +194,7 @@ namespace Litigator.Tests.Controllers
                 DeadlineDate = DateTime.Now.AddDays(10),
                 IsCompleted = false,
                 CompletedDate = null,
-                IsCritical = false,
+                IsCritical = isCritical,
                 CaseId = caseId,
                 CaseNumber = $"2024-CV-{caseId:000}",
                 CaseTitle = $"Test Case {caseId}"
@@ -257,7 +259,7 @@ namespace Litigator.Tests.Controllers
             // Arrange
             var createDto = new DeadlineCreateDTO
             {
-                DeadlineType = "", // Invalid - required field
+                DeadlineType = "", // Line262
                 Description = "Test description",
                 DeadlineDate = DateTime.Now.AddDays(30),
                 CaseId = 1,
@@ -318,6 +320,7 @@ namespace Litigator.Tests.Controllers
         {
             // Arrange
             var updateDto = CreateTestDeadlineUpdateDTO();
+            updateDto.DeadlineId = 2; // Different from the URL parameter
 
             // Act
             var result = await _controller.UpdateDeadline(1, updateDto);
@@ -373,7 +376,7 @@ namespace Litigator.Tests.Controllers
             var result = await _controller.DeleteDeadline(deadlineId);
 
             // Assert
-            Assert.IsType<NotFoundResult>(result);
+            Assert.IsType<NotFoundObjectResult>(result);
         }
 
         [Fact]
@@ -432,10 +435,10 @@ namespace Litigator.Tests.Controllers
         {
             // Arrange
             var criticalDeadlines = new List<DeadlineDTO>
-            {
-                CreateTestDeadlineDTO(1, "Trial Date"),
-                CreateTestDeadlineDTO(2, "Settlement Conference")
-            };
+    {
+        CreateTestDeadlineDTO(1, "Trial Date", isCritical: true),
+        CreateTestDeadlineDTO(2, "Settlement Conference", isCritical: true)
+    };
             _mockDeadlineService.Setup(s => s.GetCriticalDeadlinesAsync())
                 .ReturnsAsync(criticalDeadlines);
 

@@ -4,6 +4,7 @@ using Litigator.DataAccess.Entities;
 using Litigator.DataAccess.ValueObjects;
 using Litigator.Models.DTOs.ClassDTOs;
 using Litigator.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -25,8 +26,8 @@ namespace Litigator.Services.Implementations
         {
             var courts = await _context.Courts
                 .Include(c => c.Cases)
-                .OrderBy(c => c.State)
-                .ThenBy(c => c.County)
+                .OrderBy(c => c.Address.State ?? "")
+                .ThenBy(c => c.Address.County ?? "")
                 .ThenBy(c => c.CourtName)
                 .ToListAsync();
 
@@ -48,8 +49,8 @@ namespace Litigator.Services.Implementations
         {
             var courts = await _context.Courts
                 .Include(c => c.Cases)
-                .Where(c => c.State.ToLower() == state.ToLower())
-                .OrderBy(c => c.County)
+                .Where(c => (c.Address.State ?? "").ToLower() == state.ToLower())
+                .OrderBy(c => c.Address.County ?? "")
                 .ThenBy(c => c.CourtName)
                 .ToListAsync();
 
@@ -60,7 +61,8 @@ namespace Litigator.Services.Implementations
         {
             var courts = await _context.Courts
                 .Include(c => c.Cases)
-                .Where(c => c.State.ToLower() == state.ToLower() && c.County.ToLower() == county.ToLower())
+                .Where(c => (c.Address.State ?? "").ToLower() == state.ToLower() &&
+                           (c.Address.County ?? "").ToLower() == county.ToLower())
                 .OrderBy(c => c.CourtName)
                 .ToListAsync();
 
@@ -75,8 +77,8 @@ namespace Litigator.Services.Implementations
                 .Include(c => c.ChiefJudge)
                 .FirstOrDefaultAsync(c =>
                     c.CourtName.ToLower() == courtName.ToLower() &&
-                    c.County.ToLower() == county.ToLower() &&
-                    c.State.ToLower() == state.ToLower());
+                    (c.Address.County ?? "").ToLower() == county.ToLower() &&
+                    (c.Address.State ?? "").ToLower() == state.ToLower());
 
             return court != null ? _mapper.Map<CourtDetailDTO>(court) : null;
         }
@@ -86,8 +88,8 @@ namespace Litigator.Services.Implementations
             var courts = await _context.Courts
                 .Include(c => c.Cases)
                 .Where(c => c.IsActive)
-                .OrderBy(c => c.State)
-                .ThenBy(c => c.County)
+                .OrderBy(c => c.Address.State ?? "")
+                .ThenBy(c => c.Address.County ?? "")
                 .ThenBy(c => c.CourtName)
                 .ToListAsync();
 
@@ -100,8 +102,8 @@ namespace Litigator.Services.Implementations
             var existingCourt = await _context.Courts
                 .FirstOrDefaultAsync(c =>
                     c.CourtName == createCourtDto.CourtName &&
-                    c.Address.County == createCourtDto.County &&
-                    c.Address.State == createCourtDto.State);
+                    (c.Address.County ?? "") == createCourtDto.County &&
+                    (c.Address.State ?? "") == createCourtDto.State);
 
             if (existingCourt != null)
             {
@@ -148,14 +150,14 @@ namespace Litigator.Services.Implementations
 
             // Check court name uniqueness if being changed
             if (existingCourt.CourtName != updateCourtDto.CourtName ||
-                existingCourt.County != updateCourtDto.County ||
-                existingCourt.State != updateCourtDto.State)
+                (existingCourt.Address.County ?? "") != updateCourtDto.County ||
+                (existingCourt.Address.State ?? "") != updateCourtDto.State)
             {
                 var duplicateCourt = await _context.Courts
                     .FirstOrDefaultAsync(c =>
                         c.CourtName == updateCourtDto.CourtName &&
-                        c.County == updateCourtDto.County &&
-                        c.State == updateCourtDto.State &&
+                        (c.Address.County ?? "") == updateCourtDto.County &&
+                        (c.Address.State ?? "") == updateCourtDto.State &&
                         c.CourtId != updateCourtDto.CourtId);
 
                 if (duplicateCourt != null)
@@ -184,6 +186,10 @@ namespace Litigator.Services.Implementations
             else
             {
                 // If no address provided, update at least County and State
+                if (existingCourt.Address == null)
+                {
+                    existingCourt.Address = new Address();
+                }
                 existingCourt.Address.County = updateCourtDto.County;
                 existingCourt.Address.State = updateCourtDto.State;
             }
@@ -214,8 +220,8 @@ namespace Litigator.Services.Implementations
         {
             var query = _context.Courts.Where(c =>
                 c.CourtName.ToLower() == courtName.ToLower() &&
-                c.County.ToLower() == county.ToLower() &&
-                c.State.ToLower() == state.ToLower());
+                (c.Address.County ?? "").ToLower() == county.ToLower() &&
+                (c.Address.State ?? "").ToLower() == state.ToLower());
 
             if (excludeCourtId.HasValue)
             {
@@ -228,7 +234,8 @@ namespace Litigator.Services.Implementations
         public async Task<IEnumerable<string>> GetStatesAsync()
         {
             return await _context.Courts
-                .Select(c => c.State)
+                .Select(c => c.Address.State ?? "")
+                .Where(s => s != "")
                 .Distinct()
                 .OrderBy(s => s)
                 .ToListAsync();
@@ -237,8 +244,9 @@ namespace Litigator.Services.Implementations
         public async Task<IEnumerable<string>> GetCountiesByStateAsync(string state)
         {
             return await _context.Courts
-                .Where(c => c.State.ToLower() == state.ToLower())
-                .Select(c => c.County)
+                .Where(c => (c.Address.State ?? "").ToLower() == state.ToLower())
+                .Select(c => c.Address.County ?? "")
+                .Where(c => c != "")
                 .Distinct()
                 .OrderBy(c => c)
                 .ToListAsync();

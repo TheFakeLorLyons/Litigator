@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using AutoMapper;
 using Litigator.DataAccess.Data;
 using Litigator.DataAccess.Entities;
-using Litigator.Models.DTOs.Document;
+using Litigator.Models.DTOs.ClassDTOs;
 using Litigator.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Litigator.Services.Implementations
 {
@@ -24,6 +24,7 @@ namespace Litigator.Services.Implementations
         {
             return await _context.Documents
                 .Include(d => d.Case)
+                .AsNoTracking()
                 .Select(d => new DocumentDTO
                 {
                     DocumentId = d.DocumentId,
@@ -45,6 +46,7 @@ namespace Litigator.Services.Implementations
         {
             return await _context.Documents
                 .Include(d => d.Case)
+                .AsNoTracking()
                 .Where(d => d.CaseId == caseId)
                 .Select(d => new DocumentDTO
                 {
@@ -68,6 +70,7 @@ namespace Litigator.Services.Implementations
             var document = await _context.Documents
                 .Include(d => d.Case)
                     .ThenInclude(c => c.Client)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(d => d.DocumentId == id);
 
             return document == null ? null : _mapper.Map<DocumentDTO>(document);
@@ -87,6 +90,7 @@ namespace Litigator.Services.Implementations
             if (!string.IsNullOrWhiteSpace(createDto.FilePath))
             {
                 var existingDocument = await _context.Documents
+                     .AsNoTracking()
                     .FirstOrDefaultAsync(d => d.FilePath == createDto.FilePath);
                 if (existingDocument != null)
                 {
@@ -103,6 +107,7 @@ namespace Litigator.Services.Implementations
             var createdDocument = await _context.Documents
                 .Include(d => d.Case)
                     .ThenInclude(c => c.Client)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(d => d.DocumentId == document.DocumentId);
 
             return _mapper.Map<DocumentDTO>(createdDocument);
@@ -124,6 +129,7 @@ namespace Litigator.Services.Implementations
             var updatedDocument = await _context.Documents
                 .Include(d => d.Case)
                     .ThenInclude(c => c.Client)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(d => d.DocumentId == id);
 
             return _mapper.Map<DocumentDTO>(updatedDocument);
@@ -148,25 +154,37 @@ namespace Litigator.Services.Implementations
         public async Task<IEnumerable<DocumentDTO>> SearchDocumentsAsync(string searchTerm)
         {
             var term = searchTerm.ToLower();
-            var documents = await _context.Documents
+
+            return await _context.Documents
                 .Include(d => d.Case)
-                    .ThenInclude(c => c.Client)
-                .Where(d =>
-                    d.DocumentName.ToLower().Contains(term) ||
-                    d.DocumentType.ToLower().Contains(term) ||
-                    (d.UploadedBy != null && d.UploadedBy.ToLower().Contains(term)) ||
-                    d.Case.CaseNumber.ToLower().Contains(term) ||
-                    d.Case.CaseTitle.ToLower().Contains(term))
+                .AsNoTracking()
+                .Where(d => d.DocumentName.ToLower().Contains(term) ||
+                           d.DocumentType.ToLower().Contains(term) ||
+                           (d.UploadedBy != null && d.UploadedBy.ToLower().Contains(term)) ||
+                           d.Case.CaseNumber.ToLower().Contains(term) ||
+                           d.Case.CaseTitle.ToLower().Contains(term))
+                .Select(d => new DocumentDTO
+                {
+                    DocumentId = d.DocumentId,
+                    DocumentName = d.DocumentName,
+                    DocumentType = d.DocumentType,
+                    FilePath = d.FilePath,
+                    UploadDate = d.UploadDate,
+                    FileSize = d.FileSize,
+                    UploadedBy = d.UploadedBy,
+                    CaseId = d.CaseId,
+                    CaseNumber = d.Case != null ? d.Case.CaseNumber : null,
+                    CaseTitle = d.Case != null ? d.Case.CaseTitle : null
+                })
                 .OrderByDescending(d => d.UploadDate)
                 .ToListAsync();
-
-            return _mapper.Map<IEnumerable<DocumentDTO>>(documents);
         }
 
         public async Task<IEnumerable<DocumentDTO>> GetDocumentsByTypeAsync(string documentType)
         {
             return await _context.Documents
                 .Include(d => d.Case)
+                .AsNoTracking()
                 .Where(d => d.DocumentType.ToLower() == documentType.ToLower())
                 .Select(d => new DocumentDTO
                 {

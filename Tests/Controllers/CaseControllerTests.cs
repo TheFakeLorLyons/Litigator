@@ -1,10 +1,15 @@
-using Moq;
-using Xunit;
 using Litigator.Controllers;
 using Litigator.DataAccess.Entities;
+using Litigator.DataAccess.ValueObjects;
 using Litigator.Models.DTOs.ClassDTOs;
 using Litigator.Services.Interfaces;
-using Litigator.DataAccess.ValueObjects;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Xunit;
 
 namespace Litigator.Tests.Controllers
 {
@@ -34,7 +39,7 @@ namespace Litigator.Tests.Controllers
 
         private Attorney CreateTestAttorney(int attorneyId = 1, string firstName = "Jane", string lastName = "Smith")
         {
-            return new Attorney //line 37
+            return new Attorney
             {
                 SystemId = attorneyId,
                 Name = PersonName.Create(firstName, lastName),
@@ -48,7 +53,7 @@ namespace Litigator.Tests.Controllers
 
         private Judge CreateTestJudge(int judgeId = 1, string firstName = "Robert", string lastName = "Johnson")
         {
-            return new Judge //line 49
+            return new Judge
             {
                 SystemId = judgeId,
                 Name = PersonName.Create(firstName, lastName),
@@ -84,19 +89,19 @@ namespace Litigator.Tests.Controllers
                 CaseType = "Civil",
                 FilingDate = DateTime.Now.AddDays(-30),
                 Status = "Active",
-                EstimatedValue = 50000.00m,
+                EstimatedValue = 50000,
                 ClientId = 1,
                 ClientFirstName = "John",
                 ClientLastName = "Doe",
-                ClientEmail = "test@example.com",
+                ClientEmail = "john.doe@example.com",
                 ClientPhone = "555-0101",
                 AssignedAttorneyId = 1,
                 AttorneyFirstName = "Jane",
                 AttorneyLastName = "Smith",
-                AttorneyEmail = "attorney@example.com",
+                AttorneyEmail = "jane.smith@example.com",
                 CourtId = 1,
                 CourtName = "Test Court",
-                CourtAddress = "123 Court St, Court City, Court State, 12345",
+                CourtAddress = "123 Court St, Court City, Court State 12345",
                 TotalDeadlines = 5,
                 OpenDeadlines = 3,
                 OverdueDeadlines = 1,
@@ -109,65 +114,29 @@ namespace Litigator.Tests.Controllers
         [Fact]
         public async Task GetAllCases_ReturnsOkResult_WithListOfCases()
         {
-            // Arrange
-            var cases = new List<CaseDTO>
+            var cases = new List<CaseDetailDTO>
             {
-                new CaseDTO
-                {
-                    CaseId = 1,
-                    CaseNumber = "2024-DEADLINE-001",
-                    CaseTitle = "Deadline Test Case",
-                    CaseType = "Civil",
-                    FilingDate = DateTime.Now.AddDays(-30),
-                    Status = "Active",
-                    EstimatedValue = 50000.00m,
-                    ClientFirstName = "John",
-                    ClientLastName = "Doe",
-                    AttorneyFirstName = "Jane",
-                    AttorneyLastName = "Smith",
-                    CourtName = "Test Court",
-                    OpenDeadlines = 3
-                },
-                new CaseDTO
-                {
-                    CaseId = 2,
-                    CaseNumber = "2024-DEADLINE-002",
-                    CaseTitle = "Deadline Test Case 2",
-                    CaseType = "Civil",
-                    FilingDate = DateTime.Now.AddDays(-30),
-                    Status = "Active",
-                    EstimatedValue = 75000.00m,
-                    ClientFirstName = "John",
-                    ClientLastName = "Doe",
-                    AttorneyFirstName = "Bob",
-                    AttorneyLastName = "Wilson",
-                    CourtName = "Test Court 2",
-                    OpenDeadlines = 1
-                }
+                CreateTestCaseDetailDTO(1, "2024-DEADLINE-001"),
+                CreateTestCaseDetailDTO(2, "2024-DEADLINE-002")
             };
             _mockCaseService.Setup(s => s.GetAllCasesAsync()).ReturnsAsync(cases);
 
-            // Act
             var result = await _controller.GetAllCases();
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnedCases = Assert.IsAssignableFrom<IEnumerable<CaseDTO>>(okResult.Value);
+            var returnedCases = Assert.IsAssignableFrom<IEnumerable<CaseDetailDTO>>(okResult.Value);
             Assert.Equal(2, returnedCases.Count());
         }
 
         [Fact]
         public async Task GetCase_WithValidId_ReturnsOkResult()
         {
-            // Arrange
             var caseId = 1;
             var testCaseDetail = CreateTestCaseDetailDTO(caseId);
             _mockCaseService.Setup(s => s.GetCaseByIdAsync(caseId)).ReturnsAsync(testCaseDetail);
 
-            // Act
             var result = await _controller.GetCase(caseId);
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
             var returnedCase = Assert.IsType<CaseDetailDTO>(okResult.Value);
             Assert.Equal(caseId, returnedCase.CaseId);
@@ -176,14 +145,11 @@ namespace Litigator.Tests.Controllers
         [Fact]
         public async Task GetCase_WithInvalidId_ReturnsNotFound()
         {
-            // Arrange
             var caseId = 999;
             _mockCaseService.Setup(s => s.GetCaseByIdAsync(caseId)).ReturnsAsync((CaseDetailDTO?)null);
 
-            // Act
             var result = await _controller.GetCase(caseId);
 
-            // Assert
             var notFoundResult = Assert.IsType<NotFoundObjectResult>(result.Result);
             Assert.Equal($"Case with ID {caseId} not found.", notFoundResult.Value);
         }
@@ -191,15 +157,12 @@ namespace Litigator.Tests.Controllers
         [Fact]
         public async Task GetCaseByNumber_WithValidNumber_ReturnsOkResult()
         {
-            // Arrange
             var caseNumber = "2024-CV-001";
             var testCaseDetail = CreateTestCaseDetailDTO(1, caseNumber);
             _mockCaseService.Setup(s => s.GetCaseByNumberAsync(caseNumber)).ReturnsAsync(testCaseDetail);
 
-            // Act
             var result = await _controller.GetCaseByNumber(caseNumber);
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
             var returnedCase = Assert.IsType<CaseDetailDTO>(okResult.Value);
             Assert.Equal(caseNumber, returnedCase.CaseNumber);
@@ -208,14 +171,11 @@ namespace Litigator.Tests.Controllers
         [Fact]
         public async Task GetCaseByNumber_WithInvalidNumber_ReturnsNotFound()
         {
-            // Arrange
             var caseNumber = "INVALID-001";
             _mockCaseService.Setup(s => s.GetCaseByNumberAsync(caseNumber)).ReturnsAsync((CaseDetailDTO?)null);
 
-            // Act
             var result = await _controller.GetCaseByNumber(caseNumber);
 
-            // Assert
             var notFoundResult = Assert.IsType<NotFoundObjectResult>(result.Result);
             Assert.Equal($"Case with number {caseNumber} not found.", notFoundResult.Value);
         }
@@ -223,175 +183,76 @@ namespace Litigator.Tests.Controllers
         [Fact]
         public async Task GetCasesByClient_WithValidClientId_ReturnsOkResult()
         {
-            // Arrange
             var clientId = 1;
-            var caseDTOs = new List<CaseDTO>
+            var caseDetailDTOs = new List<CaseDetailDTO>
             {
-                new CaseDTO
-                {
-                    CaseId = 1,
-                    CaseNumber = "2024-CV-001",
-                    CaseTitle = "Test Case 1",
-                    CaseType = "Civil",
-                    FilingDate = DateTime.Now.AddDays(-30),
-                    Status = "Active",
-                    ClientFirstName = "John",
-                    ClientLastName = "Doe",
-                    AttorneyFirstName = "Jane",
-                    AttorneyLastName = "Smith",
-                    CourtName = "Test Court",
-                    OpenDeadlines = 3
-                },
-                new CaseDTO
-                {
-                    CaseId = 2,
-                    CaseNumber = "2024-CV-002",
-                    CaseTitle = "Test Case 2",
-                    CaseType = "Civil",
-                    FilingDate = DateTime.Now.AddDays(-30),
-                    Status = "Active",
-                    ClientFirstName = "John",
-                    ClientLastName = "Doe",
-                    AttorneyFirstName = "Jane",
-                    AttorneyLastName = "Smith",
-                    CourtName = "Test Court",
-                    OpenDeadlines = 1
-                }
+                CreateTestCaseDetailDTO(1, "2024-CV-001"),
+                CreateTestCaseDetailDTO(2, "2024-CV-002")
             };
-            _mockCaseService.Setup(s => s.GetCasesByClientAsync(clientId)).ReturnsAsync(caseDTOs);
+            _mockCaseService.Setup(s => s.GetCasesByClientAsync(clientId)).ReturnsAsync(caseDetailDTOs);
 
-            // Act
             var result = await _controller.GetCasesByClient(clientId);
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnedCases = Assert.IsAssignableFrom<IEnumerable<CaseDTO>>(okResult.Value);
+            var returnedCases = Assert.IsAssignableFrom<IEnumerable<CaseDetailDTO>>(okResult.Value);
             Assert.Equal(2, returnedCases.Count());
         }
 
         [Fact]
         public async Task GetCasesByAttorney_WithValidAttorneyId_ReturnsOkResult()
         {
-            // Arrange
             var attorneyId = 1;
-            var caseDTOs = new List<CaseDTO>
+            var caseDetailDTOs = new List<CaseDetailDTO>
             {
-                new CaseDTO
-                {
-                    CaseId = 1,
-                    CaseNumber = "2024-CV-001",
-                    CaseTitle = "Test Case",
-                    CaseType = "Civil",
-                    FilingDate = DateTime.Now.AddDays(-30),
-                    Status = "Active",
-                    ClientFirstName = "John",
-                    ClientLastName = "Doe",
-                    AttorneyFirstName = "Jane",
-                    AttorneyLastName = "Smith",
-                    CourtName = "Test Court",
-                    OpenDeadlines = 2
-                }
+                CreateTestCaseDetailDTO(1, "2024-CV-001")
             };
-            _mockCaseService.Setup(s => s.GetCasesByAttorneyAsync(attorneyId)).ReturnsAsync(caseDTOs);
+            _mockCaseService.Setup(s => s.GetCasesByAttorneyAsync(attorneyId)).ReturnsAsync(caseDetailDTOs);
 
-            // Act
             var result = await _controller.GetCasesByAttorney(attorneyId);
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnedCases = Assert.IsAssignableFrom<IEnumerable<CaseDTO>>(okResult.Value);
+            var returnedCases = Assert.IsAssignableFrom<IEnumerable<CaseDetailDTO>>(okResult.Value);
             Assert.Single(returnedCases);
         }
 
         [Fact]
         public async Task GetActiveCases_ReturnsOkResult_WithActiveCases()
         {
-            // Arrange
-            var activeCaseDTOs = new List<CaseDTO>
+            var activeCaseDetailDTOs = new List<CaseDetailDTO>
             {
-                new CaseDTO
-                {
-                    CaseId = 1,
-                    CaseNumber = "2024-CV-001",
-                    CaseTitle = "Test Case 1",
-                    CaseType = "Civil",
-                    FilingDate = DateTime.Now.AddDays(-30),
-                    Status = "Active",
-                    ClientFirstName = "John",
-                    ClientLastName = "Doe",
-                    AttorneyFirstName = "Jane",
-                    AttorneyLastName = "Smith",
-                    CourtName = "Test Court",
-                    OpenDeadlines = 3
-                },
-                new CaseDTO
-                {
-                    CaseId = 2,
-                    CaseNumber = "2024-CV-002",
-                    CaseTitle = "Test Case 2",
-                    CaseType = "Civil",
-                    FilingDate = DateTime.Now.AddDays(-30),
-                    Status = "Active",
-                    ClientFirstName = "John",
-                    ClientLastName = "Doe",
-                    AttorneyFirstName = "Jane",
-                    AttorneyLastName = "Smith",
-                    CourtName = "Test Court",
-                    OpenDeadlines = 1
-                }
+                CreateTestCaseDetailDTO(1, "2024-CV-001"),
+                CreateTestCaseDetailDTO(2, "2024-CV-002")
             };
-            _mockCaseService.Setup(s => s.GetActiveCasesAsync()).ReturnsAsync(activeCaseDTOs);
+            _mockCaseService.Setup(s => s.GetActiveCasesAsync()).ReturnsAsync(activeCaseDetailDTOs);
 
-            // Act
             var result = await _controller.GetActiveCases();
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnedCases = Assert.IsAssignableFrom<IEnumerable<CaseDTO>>(okResult.Value);
+            var returnedCases = Assert.IsAssignableFrom<IEnumerable<CaseDetailDTO>>(okResult.Value);
             Assert.Equal(2, returnedCases.Count());
         }
 
         [Fact]
         public async Task SearchCases_WithValidSearchTerm_ReturnsOkResult()
         {
-            // Arrange
             var searchTerm = "contract";
-            var caseDTOs = new List<CaseDTO>
-            {
-                new CaseDTO
-                {
-                    CaseId = 1,
-                    CaseTitle = "Contract Dispute Case",
-                    CaseNumber = "2024-CV-001",
-                    CaseType = "Civil",
-                    FilingDate = DateTime.Now.AddDays(-30),
-                    Status = "Active",
-                    ClientFirstName = "John",
-                    ClientLastName = "Doe",
-                    AttorneyFirstName = "Jane",
-                    AttorneyLastName = "Smith",
-                    CourtName = "Test Court",
-                    OpenDeadlines = 2
-                }
-            };
-            _mockCaseService.Setup(s => s.SearchCasesAsync(searchTerm)).ReturnsAsync(caseDTOs);
+            var caseDetailDTO = CreateTestCaseDetailDTO(1, "2024-CV-001");
+            caseDetailDTO.CaseTitle = "Contract Dispute Case";
+            var caseDetailDTOs = new List<CaseDetailDTO> { caseDetailDTO };
+            _mockCaseService.Setup(s => s.SearchCasesAsync(searchTerm)).ReturnsAsync(caseDetailDTOs);
 
-            // Act
             var result = await _controller.SearchCases(searchTerm);
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnedCases = Assert.IsAssignableFrom<IEnumerable<CaseDTO>>(okResult.Value);
+            var returnedCases = Assert.IsAssignableFrom<IEnumerable<CaseDetailDTO>>(okResult.Value);
             Assert.Single(returnedCases);
         }
 
         [Fact]
         public async Task SearchCases_WithEmptySearchTerm_ReturnsBadRequest()
         {
-            // Act
             var result = await _controller.SearchCases("");
 
-            // Assert
             var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
             Assert.Equal("Search term is required.", badRequestResult.Value);
         }
@@ -399,29 +260,24 @@ namespace Litigator.Tests.Controllers
         [Fact]
         public async Task CreateCase_WithValidCase_ReturnsCreatedAtAction()
         {
-            // Arrange
-            var client = CreateTestClient();
-            var attorney = CreateTestAttorney();
-            var judge = CreateTestJudge();
-            var court = CreateTestCourt();
-
-            var newCase = new Case
+            var caseCreateDto = new CaseCreateDTO
             {
                 CaseNumber = "2024-CV-003",
                 CaseTitle = "New Case",
                 CaseType = "Civil",
                 FilingDate = DateTime.Now.AddDays(-30),
                 Status = "Active",
-                CourtId = court.CourtId
+                ClientId = 1,
+                AssignedAttorneyId = 1,
+                AssignedJudgeId = 1,
+                CourtId = 1
             };
 
             var createdCaseDetail = CreateTestCaseDetailDTO(3, "2024-CV-003");
-            _mockCaseService.Setup(s => s.CreateCaseAsync(newCase)).ReturnsAsync(createdCaseDetail);
+            _mockCaseService.Setup(s => s.CreateCaseAsync(caseCreateDto)).ReturnsAsync(createdCaseDetail);
 
-            // Act
-            var result = await _controller.CreateCase(newCase);
+            var result = await _controller.CreateCase(caseCreateDto);
 
-            // Assert
             var createdAtActionResult = Assert.IsType<CreatedAtActionResult>(result.Result);
             var returnedCase = Assert.IsType<CaseDetailDTO>(createdAtActionResult.Value);
             Assert.Equal(createdCaseDetail.CaseId, returnedCase.CaseId);
@@ -430,11 +286,9 @@ namespace Litigator.Tests.Controllers
         [Fact]
         public async Task UpdateCase_WithValidCase_ReturnsOkResult()
         {
-            // Arrange
             var caseId = 1;
-            var caseToUpdate = new Case
+            var caseUpdateDto = new CaseUpdateDTO
             {
-                CaseId = caseId,
                 CaseNumber = "2024-CV-001",
                 CaseTitle = "Updated Case",
                 CaseType = "Civil",
@@ -448,72 +302,36 @@ namespace Litigator.Tests.Controllers
 
             var updatedCaseDetail = CreateTestCaseDetailDTO(caseId);
             updatedCaseDetail.CaseTitle = "Updated Case";
-            _mockCaseService.Setup(s => s.UpdateCaseAsync(caseToUpdate)).ReturnsAsync(updatedCaseDetail);
+            _mockCaseService.Setup(s => s.UpdateCaseAsync(caseId, caseUpdateDto)).ReturnsAsync(updatedCaseDetail);
 
-            // Act
-            var result = await _controller.UpdateCase(caseId, caseToUpdate);
+            var result = await _controller.UpdateCase(caseId, caseUpdateDto);
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
             var returnedCase = Assert.IsType<CaseDetailDTO>(okResult.Value);
             Assert.Equal(caseId, returnedCase.CaseId);
             Assert.Equal("Updated Case", returnedCase.CaseTitle);
         }
 
-
-        [Fact]
-        public async Task UpdateCase_WithMismatchedId_ReturnsBadRequest()
-        {
-            // Arrange
-            var caseId = 1;
-            var caseToUpdate = new Case
-            {
-                CaseId = 2, // Different ID to cause mismatch
-                CaseNumber = "2024-CV-001",
-                CaseTitle = "Updated Case",
-                CaseType = "Civil",
-                FilingDate = DateTime.Now.AddDays(-30),
-                Status = "Active",
-                ClientId = 1,
-                AssignedAttorneyId = 1,
-                AssignedJudgeId = 1,
-                CourtId = 1
-            };
-
-            // Act
-            var result = await _controller.UpdateCase(caseId, caseToUpdate);
-
-            // Assert
-            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
-            Assert.Equal("Case ID mismatch.", badRequestResult.Value);
-        }
-
         [Fact]
         public async Task DeleteCase_WithValidId_ReturnsNoContent()
         {
-            // Arrange
             var caseId = 1;
             _mockCaseService.Setup(s => s.DeleteCaseAsync(caseId)).ReturnsAsync(true);
 
-            // Act
             var result = await _controller.DeleteCase(caseId);
 
-            // Assert
             Assert.IsType<NoContentResult>(result);
         }
 
         [Fact]
         public async Task DeleteCase_WithInvalidId_ReturnsNotFound()
         {
-            // Arrange
             var caseId = 99;
             _mockCaseService.Setup(s => s.DeleteCaseAsync(caseId)).ReturnsAsync(false);
 
-            // Act
             var result = await _controller.DeleteCase(caseId);
 
-            // Assert
-            var notFoundResult = Assert.IsType<NotFoundObjectResult>(result); // Remove .Result
+            var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
             Assert.Equal($"Case with ID {caseId} not found.", notFoundResult.Value);
         }
     }

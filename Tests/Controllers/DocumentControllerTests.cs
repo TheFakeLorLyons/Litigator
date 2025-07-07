@@ -3,8 +3,9 @@ using Xunit;
 using Litigator.Controllers;
 using Litigator.DataAccess.Entities;
 using Litigator.DataAccess.ValueObjects;
-using Litigator.Models.DTOs.Document;
+using Litigator.Models.DTOs.ClassDTOs;
 using Litigator.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Litigator.Tests.Controllers
 {
@@ -353,6 +354,101 @@ namespace Litigator.Tests.Controllers
             // Assert
             var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
             Assert.Equal("Document with ID 999 not found.", notFoundResult.Value);
+        }
+
+        /*[Fact]
+        public async Task SearchDocuments_DiagnosticTest()
+        {
+            // Arrange
+            var mockDocumentService = new Mock<IDocumentService>();
+            var controller = new DocumentController(mockDocumentService.Object);
+
+            var documents = new List<DocumentDTO>
+            {
+                new DocumentDTO
+                {
+                    DocumentId = 1,
+                    DocumentName = "Test Document",
+                    DocumentType = "PDF",
+                    FilePath = "/test/path",
+                    UploadDate = DateTime.Now,
+                    FileSize = 1024,
+                    UploadedBy = "TestUser",
+                    CaseId = 1,
+                    CaseNumber = "TC001",
+                    CaseTitle = "Test Case"
+                }
+            };
+
+            mockDocumentService.Setup(s => s.SearchDocumentsAsync("Contract"))
+                              .ReturnsAsync(documents);
+
+            // Act
+            var result = await controller.SearchDocuments("Contract");
+
+            // Assert - Let's see what type we actually get
+            var actualType = result.GetType();
+            var expectedType = typeof(ActionResult<IEnumerable<DocumentDTO>>);
+
+            Assert.True(actualType == expectedType,
+                $"Expected: {expectedType.FullName}, Actual: {actualType.FullName}");
+
+            // Additional debugging
+            if (result.Result != null)
+            {
+                var resultType = result.Result.GetType();
+                if (result.Result is OkObjectResult okResult)
+                {
+                    var valueType = okResult.Value?.GetType();
+                    Assert.True(false, $"Result.Result type: {resultType.FullName}, Value type: {valueType?.FullName}");
+                }
+            }
+        }*/
+
+        [Fact]
+        public async Task SearchDocuments_EmptySearchTerm_DiagnosticTest()
+        {
+            // Arrange
+            var mockDocumentService = new Mock<IDocumentService>();
+            var controller = new DocumentController(mockDocumentService.Object);
+
+            // Act
+            var result = await controller.SearchDocuments("");
+
+            // Assert - Let's see what type we actually get
+            var actualType = result.GetType();
+            var expectedType = typeof(ActionResult<IEnumerable<DocumentDTO>>);
+
+            Assert.True(actualType == expectedType,
+                $"Expected: {expectedType.FullName}, Actual: {actualType.FullName}");
+
+            // Check the actual result
+            Assert.IsType<ActionResult<IEnumerable<DocumentDTO>>>(result);
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
+            Assert.Equal("Search term is required.", badRequestResult.Value);
+        }
+
+        [Fact]
+        public async Task SearchDocuments_ValidSearchTerm_ReturnsCorrectType()
+        {
+            // Arrange
+            var documents = new List<DocumentDTO> { CreateTestDocumentDTO() };
+            _mockDocumentService.Setup(s => s.SearchDocumentsAsync("test"))
+                              .ReturnsAsync(documents);
+
+            // Act
+            var result = await _controller.SearchDocuments("test");
+
+            // Assert
+            var actionResult = Assert.IsType<ActionResult<IEnumerable<DocumentDTO>>>(result);
+            var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+            var returnedDocs = Assert.IsAssignableFrom<IEnumerable<DocumentDTO>>(okResult.Value);
+
+            // Additional debugging
+            var actualType = result.GetType();
+            var expectedType = typeof(ActionResult<IEnumerable<DocumentDTO>>);
+            Assert.True(expectedType.IsAssignableFrom(actualType),
+                $"Expected {expectedType.Name} but got {actualType.Name}");
         }
     }
 }
