@@ -1,37 +1,347 @@
-.logos-container {
-  margin: 0 0 40px 0;
+// Dashboard container
+.dashboard-container {
+  padding: 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
 
-  svg {
-    display: inline-block;
+// Header styles
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.mascot-image {
+  height: 40px;
+  width: auto;
+  margin-right: 10px;
+  vertical-align: middle;
+  border-radius: 4px;
+}
+
+.dashboard-title {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 2rem;
+  font-weight: 600;
+
+  i {
+    margin-right: 10px;
+    color: #3498db;
   }
 }
 
-.devextreme-logo {
-  width: 255px;
-  height: 60px;
+.dashboard-actions {
+  display: flex;
+  gap: 10px;
+}
 
-  > path {
-    fill: var(--devextreme-logo-color);
+// Loading and error states
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.loading-text {
+  margin-top: 20px;
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.error-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.error-content {
+  text-align: center;
+
+  .error-icon {
+    font-size: 3rem;
+    color: #e74c3c;
+    margin-bottom: 20px;
   }
 
-  .by-devexpress {
-    path {
-      fill: var(--devextreme-logo-color);
+  h3 {
+    color: #e74c3c;
+    margin-bottom: 15px;
+  }
+
+  p {
+    color: #666;
+    margin-bottom: 25px;
+  }
+}
+
+// Dashboard content
+.dashboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+// Section titles
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+// Metrics section
+.metrics-section {
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+  }
+}
+
+.metric-card {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+}
+
+.metric-content {
+  .metric-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 5px;
+  }
+
+  .metric-label {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+  }
+}
+
+.metric-icon {
+  font-size: 2.5rem;
+  opacity: 0.3;
+}
+
+// Color variations for metric cards
+.metric-card.active-cases .metric-icon {
+  color: #3498db;
+}
+
+.metric-card.upcoming-deadlines .metric-icon {
+  color: #f39c12;
+}
+
+.metric-card.critical-deadlines .metric-icon {
+  color: #e74c3c;
+}
+
+.metric-card.total-clients .metric-icon {
+  color: #9b59b6;
+}
+
+.metric-card.monthly-revenue .metric-icon {
+  color: #27ae60;
+}
+
+.metric-card.avg-case-value .metric-icon {
+  color: #34495e;
+}
+
+// Charts section
+.charts-section {
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+  }
+}
+
+.chart-card {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+  &.full-width {
+    grid-column: 1 / -1;
+  }
+}
+
+.chart-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+// Tables section
+.tables-section {
+  .tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+    gap: 20px;
+  }
+}
+
+.table-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.table-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+}
+
+// Performance and critical sections
+.performance-section,
+.critical-section,
+.trends-section {
+  .table-card {
+    padding: 0;
+  }
+}
+
+// Badge styles
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+
+  &.badge-success {
+    background-color: #d4edda;
+    color: #155724;
+  }
+
+  &.badge-warning {
+    background-color: #fff3cd;
+    color: #856404;
+  }
+
+  &.badge-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+
+  &.badge-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+  }
+
+  &.badge-secondary {
+    background-color: #e2e3e5;
+    color: #383d41;
+  }
+}
+
+// Performance and priority score badges
+.performance-score,
+.priority-score {
+  display: flex;
+  justify-content: center;
+
+  .score-badge,
+  .priority-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    min-width: 50px;
+    text-align: center;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 10px;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+
+  .dashboard-actions {
+    justify-content: center;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tables-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-card.full-width {
+    grid-column: 1;
+  }
+}
+
+// DevExtreme customizations
+::ng-deep {
+  .dx-datagrid {
+    .dx-header-row {
+      background-color: #f8f9fa;
+      font-weight: 600;
+    }
+
+    .dx-row:hover {
+      background-color: #f8f9fa;
     }
   }
-}
 
-.angular-logo {
-  width: 247px;
-  height: 60px;
-}
-
-.plus {
-  margin: 20px;
-  width: 22px;
-  height: 22px;
-
-  path {
-    fill:  var(--plus-icon-color);
+  .dx-chart {
+    .dx-chart-legend {
+      font-size: 0.9rem;
+    }
   }
 }

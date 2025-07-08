@@ -54,7 +54,6 @@ const routes: Routes = [
   providers: [AuthGuardService],
   exports: [RouterModule],
   declarations: [
-    HomeComponent,
     ProfileComponent,
     TasksComponent
   ]
